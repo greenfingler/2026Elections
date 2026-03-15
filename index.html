@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 US Elections</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181c23;
+    --surface3: #1e2330;
+    --border: #252b38;
+    --border2: #2e3545;
+    --text: #e8eaf0;
+    --text2: #9aa0b4;
+    --text3: #5a6278;
+    --accent: #7c8fff;
+    --safe-r: #b91c1c;
+    --likely-r: #dc2626;
+    --lean-r: #ef4444;
+    --tilt-r: #fca5a5;
+    --tossup: #a855f7;
+    --tilt-d: #93c5fd;
+    --lean-d: #3b82f6;
+    --likely-d: #2563eb;
+    --safe-d: #1d4ed8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; min-height: 100vh; overflow-x: hidden; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 58px; position: sticky; top: 0; z-index: 100; }
+  .header-title { font-family: 'DM Serif Display', serif; font-size: 22px; letter-spacing: -0.3px; }
+  .header-title span { color: var(--text3); font-style: italic; }
+  .header-meta { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text3); letter-spacing: 0.05em; text-transform: uppercase; }
+  .tab-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; gap: 0; align-items: stretch; }
+  .tab { padding: 12px 20px; font-size: 13px; font-weight: 500; color: var(--text3); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; letter-spacing: 0.02em; position: relative; top: 1px; }
+  .tab:hover { color: var(--text2); }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab.disabled { opacity: 0.35; cursor: not-allowed; }
+  .tab .badge { display: inline-block; background: var(--surface3); color: var(--text3); font-size: 10px; padding: 1px 5px; border-radius: 3px; margin-left: 6px; font-family: 'DM Mono', monospace; }
+  .main { display: grid; grid-template-columns: 1fr 400px; grid-template-rows: auto 1fr; height: calc(100vh - 97px); overflow: hidden; }
+  .summary-bar { grid-column: 1 / -1; background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 32px; display: flex; align-items: center; gap: 20px; flex-shrink: 0; }
+  .summary-label { font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--text3); letter-spacing: 0.1em; }
+  .seat-counts { display: flex; align-items: center; gap: 16px; }
+  .seat-block { display: flex; flex-direction: column; gap: 1px; }
+  .seat-count-label { font-size: 10px; color: var(--text3); font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.08em; }
+  .seat-count-num { font-family: 'DM Serif Display', serif; font-size: 28px; line-height: 1; }
+  .seat-count-num.dem { color: #60a5fa; }
+  .seat-count-num.rep { color: #f87171; }
+  .seat-count-num.toss { color: #c084fc; }
+  .vdiv { width: 1px; height: 32px; background: var(--border2); }
+  .rating-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+  .rating-pill { display: flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-family: 'DM Mono', monospace; background: var(--surface2); border: 1px solid var(--border); color: var(--text2); white-space: nowrap; }
+  .rating-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .map-panel { background: var(--bg); padding: 16px 16px 16px 28px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+  .map-container { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; min-height: 0; }
+  .map-container svg { width: 100%; height: 100%; max-height: 440px; }
+  .map-container svg path { stroke: var(--bg); stroke-width: 0.8; transition: filter 0.15s; cursor: pointer; fill: #2a2f3d; }
+  .map-container svg path:hover { filter: brightness(1.25); stroke: rgba(255,255,255,0.5); stroke-width: 1.5; }
+  .map-tooltip { position: absolute; background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; padding: 10px 14px; pointer-events: none; font-size: 12px; z-index: 50; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.6); display: none; max-width: 240px; }
+  .tt-state { font-family: 'DM Serif Display', serif; font-size: 16px; margin-bottom: 3px; }
+  .flip-badge { display: inline-block; background: #fbbf24; color: #000; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; margin-left: 4px; font-family: 'DM Mono', monospace; letter-spacing: 0.05em; vertical-align: middle; }
+  .sidebar { background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .sidebar-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .sidebar-search { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; color: var(--text); font-size: 13px; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.15s; }
+  .sidebar-search:focus { border-color: var(--accent); }
+  .sidebar-search::placeholder { color: var(--text3); }
+  .sidebar-filter { display: flex; gap: 5px; padding: 8px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; overflow-x: auto; scrollbar-width: none; }
+  .sidebar-filter::-webkit-scrollbar { display: none; }
+  .filter-chip { padding: 3px 9px; border-radius: 20px; border: 1px solid var(--border); font-size: 11px; cursor: pointer; white-space: nowrap; font-family: 'DM Mono', monospace; color: var(--text3); background: transparent; transition: all 0.12s; flex-shrink: 0; }
+  .filter-chip:hover { border-color: var(--border2); color: var(--text2); }
+  .filter-chip.active { background: var(--surface3); color: var(--text); border-color: var(--border2); }
+  .race-list { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
+  .race-item { padding: 9px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; display: flex; align-items: center; gap: 10px; }
+  .race-item:hover { background: var(--surface2); }
+  .race-item.selected { background: var(--surface3); }
+  .race-rating-stripe { width: 3px; height: 34px; border-radius: 2px; flex-shrink: 0; }
+  .race-info { flex: 1; min-width: 0; }
+  .race-state { font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 5px; }
+  .state-special { font-size: 9px; color: var(--text3); background: var(--surface3); padding: 1px 5px; border-radius: 3px; font-family: 'DM Mono', monospace; text-transform: uppercase; }
+  .race-incumbent { font-size: 11px; color: var(--text3); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .race-rating-badge { font-family: 'DM Mono', monospace; font-size: 10px; padding: 2px 7px; border-radius: 4px; white-space: nowrap; font-weight: 500; }
+  .edit-panel { background: var(--surface2); border-top: 1px solid var(--border); padding: 14px 16px; flex-shrink: 0; max-height: 320px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
+  .edit-panel-title { font-family: 'DM Serif Display', serif; font-size: 18px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .edit-section { margin-bottom: 12px; }
+  .edit-section-label { font-size: 10px; font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text3); margin-bottom: 5px; }
+  .candidate-row { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+  .candidate-toggle { width: 30px; height: 17px; background: var(--surface3); border-radius: 9px; position: relative; cursor: pointer; flex-shrink: 0; border: 1px solid var(--border2); transition: background 0.15s; }
+  .candidate-toggle.on { background: #22c55e; border-color: #22c55e; }
+  .candidate-toggle::after { content: ''; position: absolute; width: 11px; height: 11px; border-radius: 50%; background: #fff; top: 2px; left: 2px; transition: left 0.15s; }
+  .candidate-toggle.on::after { left: 15px; }
+  .candidate-party { font-size: 10px; font-family: 'DM Mono', monospace; font-weight: 700; padding: 2px 6px; border-radius: 3px; flex-shrink: 0; min-width: 22px; text-align: center; }
+  .candidate-party.R { background: rgba(239,68,68,0.2); color: #f87171; }
+  .candidate-party.D { background: rgba(59,130,246,0.2); color: #60a5fa; }
+  .candidate-party.I { background: rgba(168,85,247,0.2); color: #c084fc; }
+  .candidate-input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 5px 8px; color: var(--text); font-size: 12px; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.15s; }
+  .candidate-input:focus { border-color: var(--accent); }
+  .candidate-input:disabled { opacity: 0.4; cursor: not-allowed; }
+  .rating-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 6px; }
+  .rating-btn { padding: 5px 4px; border-radius: 5px; border: 1px solid var(--border); cursor: pointer; font-size: 10px; font-family: 'DM Mono', monospace; text-align: center; background: var(--surface); color: var(--text2); transition: all 0.12s; white-space: nowrap; }
+  .rating-btn:hover { border-color: var(--border2); color: var(--text); }
+  .rating-btn.selected { color: #fff !important; border-color: transparent; }
+  .margin-input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 6px 10px; color: var(--text); font-size: 12px; font-family: 'DM Mono', monospace; outline: none; transition: border-color 0.15s; }
+  .margin-input:focus { border-color: var(--accent); }
+  .margin-input::placeholder { color: var(--text3); }
+  .flip-toggle-row { display: flex; align-items: center; justify-content: space-between; padding-top: 4px; }
+  .flip-toggle-label { font-size: 12px; color: var(--text2); }
+  .changelog-panel { border-top: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; }
+  .changelog-header { padding: 8px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; flex-shrink: 0; }
+  .changelog-header:hover { background: var(--surface2); }
+  .changelog-title { font-size: 10px; font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text3); display: flex; align-items: center; gap: 8px; }
+  .changelog-count { background: var(--accent); color: #0a0c10; font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 700; }
+  .changelog-list { overflow-y: auto; max-height: 120px; scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
+  .changelog-entry { padding: 6px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 7px; font-size: 11px; flex-wrap: wrap; }
+  .cl-time { font-family: 'DM Mono', monospace; color: var(--text3); font-size: 10px; white-space: nowrap; }
+  .cl-state { font-weight: 600; color: var(--text); }
+  .no-results { padding: 20px 16px; text-align: center; color: var(--text3); font-size: 13px; font-style: italic; }
+  .save-btn { background: var(--accent); color: #0a0c10; border: none; border-radius: 5px; padding: 5px 12px; font-size: 11px; font-family: 'DM Mono', monospace; cursor: pointer; font-weight: 600; letter-spacing: 0.05em; transition: opacity 0.15s; }
+  .save-btn:hover { opacity: 0.85; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  .notes-input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 6px 10px; color: var(--text); font-size: 12px; font-family: 'Inter', sans-serif; outline: none; resize: none; min-height: 48px; transition: border-color 0.15s; }
+  .notes-input:focus { border-color: var(--accent); }
+  .notes-input::placeholder { color: var(--text3); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">2026 US Elections <span>Ratings</span></div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="header-meta" id="lastUpdated">Feb 24, 2026</div>
+    <button class="save-btn" onclick="exportData()">&#8595; Export JSON</button>
+  </div>
+</header>
+
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab('senate')">Senate <span class="badge" id="senateCount">35</span></div>
+  <div class="tab disabled" title="Coming soon">Governor</div>
+  <div class="tab disabled" title="Coming soon">House</div>
+</div>
+
+<div class="main" id="senateTab">
+  <div class="summary-bar">
+    <div class="seat-counts">
+      <div class="seat-block">
+        <div class="seat-count-label">Dem Proj.</div>
+        <div class="seat-count-num dem" id="demCount">—</div>
+      </div>
+      <div class="vdiv"></div>
+      <div class="seat-block">
+        <div class="seat-count-label">Rep Proj.</div>
+        <div class="seat-count-num rep" id="repCount">—</div>
+      </div>
+      <div class="vdiv"></div>
+      <div class="seat-block">
+        <div class="seat-count-label">Tossup</div>
+        <div class="seat-count-num toss" id="tossCount">—</div>
+      </div>
+    </div>
+    <div class="rating-pills" id="ratingPills"></div>
+  </div>
+
+  <div class="map-panel">
+    <div class="map-container" id="mapContainer">
+      <div class="map-tooltip" id="mapTooltip"></div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <input type="text" class="sidebar-search" id="searchInput" placeholder="Search state or candidate&#8230;" oninput="filterRaces()">
+    </div>
+    <div class="sidebar-filter" id="filterBar"></div>
+    <div class="race-list" id="raceList"></div>
+    <div class="edit-panel" id="editPanel" style="display:none">
+      <div class="edit-panel-title" id="editTitle">Select a race</div>
+      <div id="editContent"></div>
+    </div>
+    <div class="changelog-panel" id="changelogPanel">
+      <div class="changelog-header" onclick="toggleChangelog()">
+        <div class="changelog-title">
+          Changes Log
+          <span class="changelog-count" id="changelogCount">0</span>
+        </div>
+        <span id="changelogToggleIcon" style="color:var(--text3);font-size:11px">&#9650;</span>
+      </div>
+      <div class="changelog-list" id="changelogList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const RATINGS = ['Safe R','Likely R','Lean R','Tilt R','Tossup','Tilt D','Lean D','Likely D','Safe D'];
+const RATING_COLORS = {
+  'Safe R':'#b91c1c','Likely R':'#dc2626','Lean R':'#ef4444','Tilt R':'#fca5a5',
+  'Tossup':'#a855f7',
+  'Tilt D':'#93c5fd','Lean D':'#3b82f6','Likely D':'#2563eb','Safe D':'#1d4ed8'
+};
+
+let races = [
+  {state:'Alabama',abbr:'AL',incumbent:'Tommy Tuberville',party:'R',rating:'Safe R',margin:'',notes:'',candidates:{R:{name:'Tommy Tuberville',on:true},D:{name:'',on:false},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Alaska',abbr:'AK',incumbent:'Dan Sullivan',party:'R',rating:'Tossup',margin:'',notes:'Dan Sullivan (R) vs. Mary Peltola (D)',candidates:{R:{name:'Dan Sullivan',on:true},D:{name:'Mary Peltola',on:true},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Arkansas',abbr:'AR',incumbent:'Tom Cotton',party:'R',rating:'Safe R',margin:'',notes:'',candidates:{R:{name:'Tom Cotton',on:true},D:{name:'',on:false},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Colorado',abbr:'CO',incumbent:'John Hickenlooper',party:'D',rating:'Safe D',margin:'',notes:'',candidates:{R:{name:'',on:true},D:{name:'John Hickenlooper',on:true},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Delaware',abbr:'DE',incumbent:'Chris Coons',party:'D',rating:'Safe D',margin:'',notes:'',candidates:{R:{name:'',on:false},D:{name:'Chris Coons',on:true},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Florida',abbr:'FL',incumbent:'Ashley Moody',party:'R',rating:'Likely R',margin:'',notes:'Special election',candidates:{R:{name:'Ashley Moody',on:true},D:{name:'',on:true},I:{name:'',on:false}},isFlip:false,isSpecial:true},
+  {state:'Georgia',abbr:'GA',incumbent:'Jon Ossoff',party:'D',rating:'Likely D',margin:'',notes:'Lean D to Likely D, 2/24',candidates:{R:{name:'',on:true},D:{name:'Jon Ossoff',on:true},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Idaho',abbr:'ID',incumbent:'Jim Risch',party:'R',rating:'Safe R',margin:'',notes:'',candidates:{R:{name:'Jim Risch',on:true},D:{name:'',on:false},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Illinois',abbr:'IL',incumbent:'Dick Durbin',party:'D',rating:'Safe D',margin:'',notes:'',candidates:{R:{name:'',on:true},D:{name:'Dick Durbin',on:true},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Iowa',abbr:'IA',incumbent:'Joni Ernst',party:'R',rating:'Lean R',margin:'',notes:'',candidates:{R:{name:'Joni Ernst',on:true},D:{name:'',on:true},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Kansas',abbr:'KS',incumbent:'Roger Marshall',party:'R',rating:'Likely R',margin:'',notes:'',candidates:{R:{name:'Roger Marshall',on:true},D:{name:'',on:true},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Kentucky',abbr:'KY',incumbent:'Mitch McConnell',party:'R',rating:'Safe R',margin:'',notes:'',candidates:{R:{name:'Mitch McConnell',on:true},D:{name:'',on:false},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Louisiana',abbr:'LA',incumbent:'Bill Cassidy',party:'R',rating:'Safe R',margin:'',notes:'',candidates:{R:{name:'Bill Cassidy',on:true},D:{name:'',on:false},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Maine',abbr:'ME',incumbent:'Susan Collins',party:'R',rating:'Tilt D',margin:'',notes:'',candidates:{R:{name:'Susan Collins',on:true},D:{name:'',on:true},I:{name:'',on:false}},isFlip:true,isSpecial:false},
+  {state:'Massachusetts',abbr:'MA',incumbent:'Ed Markey',party:'D',rating:'Safe D',margin:'',notes:'',candidates:{R:{name:'',on:false},D:{name:'Ed Markey',on:true},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Michigan',abbr:'MI',incumbent:'Gary Peters',party:'D',rating:'Lean D',margin:'',notes:'',candidates:{R:{name:'',on:true},D:{name:'Gary Peters',on:true},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Minnesota',abbr:'MN',incumbent:'Tina Smith',party:'D',rating:'Safe D',margin:'',notes:'',candidates:{R:{name:'',on:false},D:{name:'Tina Smith',on:true},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Mississippi',abbr:'MS',incumbent:'Cindy Hyde-Smith',party:'R',rating:'Safe R',margin:'',notes:'',candidates:{R:{name:'Cindy Hyde-Smith',on:true},D:{name:'',on:false},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Montana',abbr:'MT',incumbent:'Steve Daines',party:'R',rating:'Safe R',margin:'',notes:'',candidates:{R:{name:'Steve Daines',on:true},D:{name:'',on:false},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Nebraska',abbr:'NE',incumbent:'Pete Ricketts',party:'R',rating:'Lean R',margin:'',notes:'Pete Ricketts (R) vs. Dan Osborn (I)',candidates:{R:{name:'Pete Ricketts',on:true},D:{name:'',on:false},I:{name:'Dan Osborn',on:true}},isFlip:false,isSpecial:false},
+  {state:'New Hampshire',abbr:'NH',incumbent:'Jeanne Shaheen',party:'D',rating:'Likely D',margin:'',notes:'Chris Pappas (D) vs. John Sununu (R)',candidates:{R:{name:'John Sununu',on:true},D:{name:'Chris Pappas',on:true},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'New Jersey',abbr:'NJ',incumbent:'Cory Booker',party:'D',rating:'Safe D',margin:'',notes:'',candidates:{R:{name:'',on:true},D:{name:'Cory Booker',on:true},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'New Mexico',abbr:'NM',incumbent:'Ben Ray Lujan',party:'D',rating:'Safe D',margin:'',notes:'Uncontested',candidates:{R:{name:'',on:false},D:{name:'Ben Ray Lujan',on:true},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'North Carolina',abbr:'NC',incumbent:'Thom Tillis',party:'R',rating:'Likely D',margin:'',notes:'Michael Whatley (R) vs. Roy Cooper (D)',candidates:{R:{name:'Michael Whatley',on:true},D:{name:'Roy Cooper',on:true},I:{name:'',on:false}},isFlip:true,isSpecial:false},
+  {state:'Ohio',abbr:'OH',incumbent:'Jon Husted',party:'R',rating:'Tossup',margin:'',notes:'Jon Husted (R) vs. Sherrod Brown (D)',candidates:{R:{name:'Jon Husted',on:true},D:{name:'Sherrod Brown',on:true},I:{name:'',on:false}},isFlip:false,isSpecial:true},
+  {state:'Oklahoma',abbr:'OK',incumbent:'Markwayne Mullin',party:'R',rating:'Safe R',margin:'',notes:'',candidates:{R:{name:'Markwayne Mullin',on:true},D:{name:'',on:false},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Oregon',abbr:'OR',incumbent:'Jeff Merkley',party:'D',rating:'Safe D',margin:'',notes:'',candidates:{R:{name:'',on:true},D:{name:'Jeff Merkley',on:true},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Rhode Island',abbr:'RI',incumbent:'Jack Reed',party:'D',rating:'Safe D',margin:'',notes:'',candidates:{R:{name:'',on:false},D:{name:'Jack Reed',on:true},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'South Carolina',abbr:'SC',incumbent:'Lindsey Graham',party:'R',rating:'Safe R',margin:'',notes:'',candidates:{R:{name:'Lindsey Graham',on:true},D:{name:'',on:false},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'South Dakota',abbr:'SD',incumbent:'Mike Rounds',party:'R',rating:'Likely R',margin:'',notes:'Mike Rounds (R) vs. Brian Bengs (I)',candidates:{R:{name:'Mike Rounds',on:true},D:{name:'',on:false},I:{name:'Brian Bengs',on:true}},isFlip:false,isSpecial:false},
+  {state:'Tennessee',abbr:'TN',incumbent:'Bill Hagerty',party:'R',rating:'Safe R',margin:'',notes:'',candidates:{R:{name:'Bill Hagerty',on:true},D:{name:'',on:false},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Texas',abbr:'TX',incumbent:'John Cornyn',party:'R',rating:'Lean R',margin:'',notes:'TBD (R) vs. James Talarico (D)',candidates:{R:{name:'John Cornyn',on:true},D:{name:'James Talarico',on:true},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Virginia',abbr:'VA',incumbent:'Mark Warner',party:'D',rating:'Safe D',margin:'',notes:'',candidates:{R:{name:'',on:true},D:{name:'Mark Warner',on:true},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'West Virginia',abbr:'WV',incumbent:'Shelley Moore Capito',party:'R',rating:'Safe R',margin:'',notes:'',candidates:{R:{name:'Shelley Moore Capito',on:true},D:{name:'',on:false},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+  {state:'Wyoming',abbr:'WY',incumbent:'Cynthia Lummis',party:'R',rating:'Safe R',margin:'',notes:'',candidates:{R:{name:'Cynthia Lummis',on:true},D:{name:'',on:false},I:{name:'',on:false}},isFlip:false,isSpecial:false},
+];
+
+let changelog = [];
+let selectedRace = null;
+let searchQuery = '';
+let activeFilter = 'All';
+let changelogOpen = true;
+
+function loadSaved() {
+  try {
+    const s = localStorage.getItem('elections2026v2');
+    if(s) { const d=JSON.parse(s); if(d.races) races=d.races; if(d.changelog) changelog=d.changelog; }
+  } catch(e) {}
+}
+
+function saveData() {
+  try { localStorage.setItem('elections2026v2', JSON.stringify({races,changelog})); } catch(e) {}
+}
+
+function exportData() {
+  const b = new Blob([JSON.stringify({races,changelog},null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='2026_senate_ratings.json'; a.click();
+}
+
+function getRatingColor(r) { return RATING_COLORS[r]||'#555'; }
+
+function formatTime(ts) {
+  const d=new Date(ts);
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' ' +
+    d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+}
+
+function computeCounts() {
+  let dem=0,rep=0,toss=0; const rc={};
+  races.forEach(r=>{
+    rc[r.rating]=(rc[r.rating]||0)+1;
+    if(r.rating==='Tossup') toss++;
+    else if(r.rating.includes('R')) rep++;
+    else if(r.rating.includes('D')) dem++;
+  });
+  return {dem,rep,toss,rc};
+}
+
+function buildCandidateStr(r) {
+  const p=[];
+  if(r.candidates.R.on&&r.candidates.R.name) p.push('<span style="color:#f87171">'+r.candidates.R.name+' (R)</span>');
+  if(r.candidates.D.on&&r.candidates.D.name) p.push('<span style="color:#60a5fa">'+r.candidates.D.name+' (D)</span>');
+  if(r.candidates.I.on&&r.candidates.I.name) p.push('<span style="color:#c084fc">'+r.candidates.I.name+' (I)</span>');
+  return p.join(' <span style="color:var(--text3)">vs.</span> ')||('<span style="color:var(--text3)">'+r.incumbent+'</span>');
+}
+
+function renderAll() {
+  renderMap(); renderSummaryBar(); renderRaceList(); renderChangelog(); saveData();
+}
+
+function renderSummaryBar() {
+  const {dem,rep,toss,rc}=computeCounts();
+  document.getElementById('demCount').textContent=dem;
+  document.getElementById('repCount').textContent=rep;
+  document.getElementById('tossCount').textContent=toss;
+  document.getElementById('senateCount').textContent=races.length;
+  document.getElementById('ratingPills').innerHTML=RATINGS.map(r=>{
+    const c=rc[r]||0; if(!c) return '';
+    return '<div class="rating-pill"><div class="rating-dot" style="background:'+getRatingColor(r)+'"></div>'+r+' <strong style="color:var(--text)">'+c+'</strong></div>';
+  }).join('');
+  if(changelog.length) document.getElementById('lastUpdated').textContent='Updated '+formatTime(changelog[changelog.length-1].ts);
+}
+
+function renderMap() {
+  const svg=document.getElementById('electionMap'); if(!svg) return;
+  races.forEach(r=>{
+    const el=svg.getElementById(r.abbr); if(!el) return;
+    el.style.fill=getRatingColor(r.rating);
+    if(r.isFlip) { el.style.stroke='#fbbf24'; el.style.strokeWidth='2.5'; }
+    else { el.style.stroke=''; el.style.strokeWidth=''; }
+  });
+}
+
+function renderRaceList() {
+  const q=searchQuery.toLowerCase();
+  const filtered=races.filter(r=>{
+    if(q){
+      const m=r.state.toLowerCase().includes(q)||r.incumbent.toLowerCase().includes(q)||
+        Object.values(r.candidates).some(c=>c.name.toLowerCase().includes(q));
+      if(!m) return false;
+    }
+    if(activeFilter==='All') return true;
+    if(activeFilter==='Flips') return r.isFlip;
+    if(activeFilter==='Competitive') return ['Tossup','Tilt R','Tilt D','Lean R','Lean D'].includes(r.rating);
+    return r.rating===activeFilter;
+  });
+  const list=document.getElementById('raceList');
+  if(!filtered.length){list.innerHTML='<div class="no-results">No races match</div>';return;}
+  list.innerHTML=filtered.map(r=>{
+    const color=getRatingColor(r.rating);
+    const tc=['Tilt R','Tilt D'].includes(r.rating)?'#111':'#fff';
+    const sel=selectedRace&&selectedRace.abbr===r.abbr;
+    return '<div class="race-item'+(sel?' selected':'')+'" onclick="selectRace(''+r.abbr+'')">' +
+      '<div class="race-rating-stripe" style="background:'+color+'"></div>' +
+      '<div class="race-info">' +
+        '<div class="race-state">'+r.state+(r.isSpecial?' <span class="state-special">Special</span>':'')+(r.isFlip?' <span class="flip-badge">FLIP</span>':'')+'</div>' +
+        '<div class="race-incumbent">'+buildCandidateStr(r)+'</div>' +
+      '</div>' +
+      '<div class="race-rating-badge" style="background:'+color+'22;color:'+color+';border:1px solid '+color+'44;font-size:10px;padding:2px 7px;border-radius:4px;font-family:DM Mono,monospace;white-space:nowrap;font-weight:500">'+r.rating+'</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderFilterBar() {
+  const filters=['All','Competitive','Flips',...RATINGS];
+  document.getElementById('filterBar').innerHTML=filters.map(f=>
+    '<div class="filter-chip'+(activeFilter===f?' active':'')+'" onclick="setFilter(''+f+'')">'+f+'</div>'
+  ).join('');
+}
+
+function renderChangelog() {
+  const cl=document.getElementById('changelogList');
+  document.getElementById('changelogCount').textContent=changelog.length;
+  if(!changelog.length){cl.innerHTML='<div class="no-results">No changes yet</div>';return;}
+  cl.innerHTML=[...changelog].reverse().map(e=>
+    '<div class="changelog-entry">' +
+      '<span class="cl-time">'+formatTime(e.ts)+'</span>' +
+      '<span class="cl-state">'+e.state+'</span>' +
+      '<span style="color:var(--text3)">&#8594;</span>' +
+      '<span style="font-size:10px;font-family:DM Mono,monospace;padding:1px 5px;border-radius:3px;background:'+getRatingColor(e.from)+'22;color:'+getRatingColor(e.from)+'">'+e.from+'</span>' +
+      '<span style="color:var(--text3)">&#8594;</span>' +
+      '<span style="font-size:10px;font-family:DM Mono,monospace;padding:1px 5px;border-radius:3px;font-weight:600;background:'+getRatingColor(e.to)+'33;color:'+getRatingColor(e.to)+'">'+e.to+'</span>' +
+    '</div>'
+  ).join('');
+}
+
+function renderEditPanel(race) {
+  const panel=document.getElementById('editPanel');
+  const title=document.getElementById('editTitle');
+  const content=document.getElementById('editContent');
+  if(!race){panel.style.display='none';return;}
+  panel.style.display='block';
+  title.innerHTML=race.state+(race.isFlip?' <span class="flip-badge">FLIP</span>':'')+
+    (race.isSpecial?' <span class="state-special" style="font-size:12px">Special</span>':'');
+  const ratingBtns=RATINGS.map(r=>{
+    const c=getRatingColor(r); const tc=['Tilt R','Tilt D'].includes(r)?'#111':'#fff';
+    const sel=race.rating===r;
+    return '<div class="rating-btn'+(sel?' selected':'')+'" ' +
+      'style="'+(sel?'background:'+c+';color:'+tc+';border-color:'+c+';':'')+'" ' +
+      'onclick="updateRating(''+race.abbr+'',''+r+'')">'+r+'</div>';
+  }).join('');
+  content.innerHTML=
+    '<div class="edit-section">' +
+      '<div class="edit-section-label">Candidates</div>' +
+      ['R','D','I'].map(p=>
+        '<div class="candidate-row">' +
+          '<div class="candidate-toggle'+(race.candidates[p].on?' on':'')+'" onclick="toggleCandidate(''+race.abbr+'',''+p+'')" id="ctog_'+race.abbr+'_'+p+'"></div>' +
+          '<div class="candidate-party '+p+'">'+p+'</div>' +
+          '<input class="candidate-input" id="cinp_'+race.abbr+'_'+p+'" value="'+escapeHtml(race.candidates[p].name)+'" ' +
+            'placeholder="'+(p==='R'?'Republican nominee':p==='D'?'Democratic nominee':'Independent nominee')+'" ' +
+            'oninput="updateCandidate(''+race.abbr+'',''+p+'',this.value)" ' +
+            (race.candidates[p].on?'':'disabled')+'>'+
+        '</div>'
+      ).join('') +
+    '</div>' +
+    '<div class="edit-section">' +
+      '<div class="edit-section-label">Race Rating</div>' +
+      '<div class="rating-grid">'+ratingBtns+'</div>' +
+    '</div>' +
+    '<div class="edit-section">' +
+      '<div class="edit-section-label">Projected Margin</div>' +
+      '<input class="margin-input" value="'+escapeHtml(race.margin||'')+'" placeholder="e.g. R+4, D+2, Toss" oninput="updateMargin(''+race.abbr+'',this.value)">' +
+    '</div>' +
+    '<div class="edit-section">' +
+      '<div class="edit-section-label">Notes</div>' +
+      '<textarea class="notes-input" placeholder="Notes&#8230;" oninput="updateNotes(''+race.abbr+'',this.value)">'+escapeHtml(race.notes||'')+'</textarea>' +
+    '</div>' +
+    '<div class="flip-toggle-row">' +
+      '<span class="flip-toggle-label">Mark as Seat Flip</span>' +
+      '<div class="candidate-toggle'+(race.isFlip?' on':'')+'" onclick="toggleFlip(''+race.abbr+'')" id="flipTog_'+race.abbr+'"></div>' +
+    '</div>';
+}
+
+function escapeHtml(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function selectRace(abbr) {
+  selectedRace=races.find(r=>r.abbr===abbr)||null;
+  renderRaceList(); renderEditPanel(selectedRace);
+  if(selectedRace){
+    const el=document.querySelector('[onclick="selectRace(''+abbr+'')"]');
+    if(el) el.scrollIntoView({block:'nearest'});
+  }
+}
+
+function setFilter(f){activeFilter=f;renderFilterBar();renderRaceList();}
+function filterRaces(){searchQuery=document.getElementById('searchInput').value;renderRaceList();}
+function toggleCandidate(abbr,party){const r=races.find(x=>x.abbr===abbr);if(!r)return;r.candidates[party].on=!r.candidates[party].on;renderAll();renderEditPanel(r);}
+function updateCandidate(abbr,party,val){const r=races.find(x=>x.abbr===abbr);if(!r)return;r.candidates[party].name=val;renderRaceList();saveData();}
+function updateRating(abbr,nr){
+  const r=races.find(x=>x.abbr===abbr);if(!r||r.rating===nr)return;
+  const old=r.rating; r.rating=nr;
+  changelog.push({ts:Date.now(),state:r.state,abbr,from:old,to:nr});
+  renderAll(); renderEditPanel(r);
+}
+function updateMargin(abbr,v){const r=races.find(x=>x.abbr===abbr);if(!r)return;r.margin=v;saveData();}
+function updateNotes(abbr,v){const r=races.find(x=>x.abbr===abbr);if(!r)return;r.notes=v;saveData();}
+function toggleFlip(abbr){const r=races.find(x=>x.abbr===abbr);if(!r)return;r.isFlip=!r.isFlip;renderAll();renderEditPanel(r);}
+function toggleChangelog(){
+  changelogOpen=!changelogOpen;
+  document.getElementById('changelogList').style.display=changelogOpen?'':'none';
+  document.getElementById('changelogToggleIcon').textContent=changelogOpen?'&#9650;':'&#9660;';
+}
+function switchTab(t){}
+
+function initMap() {
+  const container=document.getElementById('mapContainer');
+  const tmpl=document.getElementById('svgTemplate');
+  if(!tmpl) return;
+  const div=document.createElement('div');
+  div.innerHTML=tmpl.textContent||tmpl.innerHTML;
+  const svg=div.querySelector('svg');
+  if(!svg) return;
+  svg.id='electionMap';
+  svg.style.cssText='width:100%;height:100%;max-height:440px;display:block;';
+  container.insertBefore(svg,container.firstChild);
+  const tooltip=document.getElementById('mapTooltip');
+  svg.querySelectorAll('[id]').forEach(el=>{
+    const abbr=el.id; if(abbr.length!==2||abbr==='DC') return;
+    el.style.cursor='pointer';
+    el.addEventListener('mousemove',e=>{
+      const race=races.find(r=>r.abbr===abbr); if(!race) return;
+      const rect=container.getBoundingClientRect();
+      const x=e.clientX-rect.left, y=e.clientY-rect.top;
+      const color=getRatingColor(race.rating);
+      const tc=['Tilt R','Tilt D'].includes(race.rating)?'#111':'#fff';
+      tooltip.style.display='block';
+      tooltip.style.left=Math.min(x+14,rect.width-220)+'px';
+      tooltip.style.top=Math.max(y-70,4)+'px';
+      tooltip.innerHTML='<div class="tt-state">'+race.state+(race.isSpecial?' <span class="state-special">Special</span>':'')+(race.isFlip?' <span class="flip-badge">FLIP</span>':'')+'</div>'+
+        '<div style="font-size:11px;color:var(--text2);margin-bottom:5px">'+buildCandidateStr(race)+'</div>'+
+        '<div style="background:'+color+'22;color:'+color+';padding:2px 8px;border-radius:4px;display:inline-block;font-family:DM Mono,monospace;font-size:11px">'+race.rating+'</div>'+
+        (race.margin?' <span style="color:var(--text3);font-size:10px;font-family:DM Mono,monospace;margin-left:6px">'+race.margin+'</span>':'');
+    });
+    el.addEventListener('mouseleave',()=>{tooltip.style.display='none';});
+    el.addEventListener('click',()=>{const race=races.find(r=>r.abbr===abbr);if(race)selectRace(abbr);});
+  });
+  renderMap();
+}
+
+loadSaved();
+renderFilterBar();
+renderAll();
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initMap);}
+else{setTimeout(initMap,0);}
+</script>
+
+<script type="text/plain" id="svgTemplate">
+<svg viewBox="0 0 959 593"
+   width="100%"
+   height="100%"
+   version="1.1"
+   id="svg1841"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <title
+     id="title1668">2026 US Senate map</title>
+  <defs id="defs1672"></defs>
+  <g
+     class="state"
+     id="g1829">
+    <path
+       d="m 161.1,453.7 -0.3,85.4 1.6,1 3.1,0.2 1.5,-1.1 h 2.6 l 0.2,2.9 7,6.8 0.5,2.6 3.4,-1.9 0.6,-0.2 0.3,-3.1 1.5,-1.6 1.1,-0.2 1.9,-1.5 3.1,2.1 0.6,2.9 1.9,1.1 1.1,2.4 3.9,1.8 3.4,6 2.7,3.9 2.3,2.7 1.5,3.7 5,1.8 5.2,2.1 1,4.4 0.5,3.1 -1,3.4 -1.8,2.3 -1.6,-0.8 -1.5,-3.1 -2.7,-1.5 -1.8,-1.1 -0.8,0.8 1.5,2.7 0.2,3.7 -1.1,0.5 -1.9,-1.9 -2.1,-1.3 0.5,1.6 1.3,1.8 -0.8,0.8 c 0,0 -0.8,-0.3 -1.3,-1 -0.5,-0.6 -2.1,-3.4 -2.1,-3.4 l -1,-2.3 c 0,0 -0.3,1.3 -1,1 -0.6,-0.3 -1.3,-1.5 -1.3,-1.5 l 1.8,-1.9 -1.5,-1.5 v -5 h -0.8 l -0.8,3.4 -1.1,0.5 -1,-3.7 -0.6,-3.7 -0.8,-0.5 0.3,5.7 v 1.1 l -1.5,-1.3 -3.6,-6 -2.1,-0.5 -0.6,-3.7 -1.6,-2.9 -1.6,-1.1 v -2.3 l 2.1,-1.3 -0.5,-0.3 -2.6,0.6 -3.4,-2.4 -2.6,-2.9 -4.8,-2.6 -4,-2.6 1.3,-3.2 V 542 l -1.8,1.6 -2.9,1.1 -3.7,-1.1 -5.7,-2.4 h -5.5 l -0.6,0.5 -6.5,-3.9 -2.1,-0.3 -2.7,-5.8 -3.6,0.3 -3.6,1.5 0.5,4.5 1.1,-2.9 1,0.3 -1.5,4.4 3.2,-2.7 0.6,1.6 -3.9,4.4 -1.3,-0.3 -0.5,-1.9 -1.3,-0.8 -1.3,1.1 -2.7,-1.8 -3.1,2.1 -1.8,2.1 -3.4,2.1 -4.7,-0.2 -0.5,-2.1 3.7,-0.6 v -1.3 l -2.3,-0.6 1,-2.4 2.3,-3.9 v -1.8 l 0.2,-0.8 4.4,-2.3 1,1.3 h 2.7 l -1.3,-2.6 -3.7,-0.3 -5,2.7 -2.4,3.4 -1.8,2.6 -1.1,2.3 -4.2,1.5 -3.1,2.6 -0.3,1.6 2.3,1 0.8,2.1 -2.7,3.2 -6.5,4.2 -7.8,4.2 -2.1,1.1 -5.3,1.1 -5.3,2.3 1.8,1.3 -1.5,1.5 -0.5,1.1 -2.7,-1 -3.2,0.2 -0.8,2.3 h -1 l 0.3,-2.4 -3.6,1.3 -2.9,1 -3.4,-1.3 -2.9,1.9 h -3.2 l -2.1,1.3 -1.6,0.8 -2.1,-0.3 -2.6,-1.1 -2.3,0.6 -1,1 -1.6,-1.1 v -1.9 l 3.1,-1.3 6.3,0.6 4.4,-1.6 2.1,-2.1 2.9,-0.6 1.8,-0.8 2.7,0.2 1.6,1.3 1,-0.3 2.3,-2.7 3.1,-1 3.4,-0.6 1.3,-0.3 0.6,0.5 h 0.8 l 1.3,-3.7 4,-1.5 1.9,-3.7 2.3,-4.5 1.6,-1.5 0.3,-2.6 -1.6,1.3 -3.4,0.6 -0.6,-2.4 -1.3,-0.3 -1,1 -0.2,2.9 -1.5,-0.2 -1.5,-5.8 -1.3,1.3 -1.1,-0.5 -0.3,-1.9 -4,0.2 -2.1,1.1 -2.6,-0.3 1.5,-1.5 0.5,-2.6 -0.6,-1.9 1.5,-1 1.3,-0.2 -0.6,-1.8 v -4.4 l -1,-1 -0.8,1.5 h -6.1 l -1.5,-1.3 -0.6,-3.9 -2.1,-3.6 v -1 l 2.1,-0.8 0.2,-2.1 1.1,-1.1 -0.8,-0.5 -1.3,0.5 -1.1,-2.7 1,-5 4.5,-3.2 2.6,-1.6 1.9,-3.7 2.7,-1.3 2.6,1.1 0.3,2.4 2.4,-0.3 3.2,-2.4 1.6,0.6 1,0.6 h 1.6 l 2.3,-1.3 0.8,-4.4 c 0,0 0.3,-2.9 1,-3.4 0.6,-0.5 1,-1 1,-1 l -1.1,-1.9 -2.6,0.8 -3.2,0.8 -1.9,-0.5 -3.6,-1.8 -5,-0.2 -3.6,-3.7 0.5,-3.9 0.6,-2.4 -2.1,-1.8 -1.9,-3.7 0.5,-0.8 6.8,-0.5 h 2.1 l 1,1 h 0.6 l -0.2,-1.6 3.9,-0.6 2.6,0.3 1.5,1.1 -1.5,2.1 -0.5,1.5 2.7,1.6 5,1.8 1.8,-1 -2.3,-4.4 -1,-3.2 1,-0.8 -3.4,-1.9 -0.5,-1.1 0.5,-1.6 -0.8,-3.9 -2.9,-4.7 -2.4,-4.2 2.9,-1.9 h 3.2 l 1.8,0.6 4.2,-0.2 3.7,-3.6 1.1,-3.1 3.7,-2.4 1.6,1 2.7,-0.6 3.7,-2.1 1.1,-0.2 1,0.8 4.5,-0.2 2.7,-3.1 h 1.1 l 3.6,2.4 1.9,2.1 -0.5,1.1 0.6,1.1 1.6,-1.6 3.9,0.3 0.3,3.7 1.9,1.5 7.1,0.6 6.3,4.2 1.5,-1 5.2,2.6 2.1,-0.6 1.9,-0.8 4.8,1.9 z M 46,482.6 l 2.1,5.3 -0.2,1 -2.9,-0.3 -1.8,-4 -1.8,-1.5 H 39 l -0.2,-2.6 1.8,-2.4 1.1,2.4 1.5,1.5 z m -2.6,33.5 3.7,0.8 3.7,1 0.8,1 -1.6,3.7 -3.1,-0.2 -3.4,-3.6 z M 22.7,502 l 1.1,2.6 1.1,1.6 -1.1,0.8 -2.1,-3.1 V 502 Z M 9,575.1 l 3.4,-2.3 3.4,-1 2.6,0.3 0.5,1.6 1.9,0.5 1.9,-1.9 -0.3,-1.6 2.7,-0.6 2.9,2.6 -1.1,1.8 -4.4,1.1 -2.7,-0.5 -3.7,-1.1 -4.4,1.5 -1.6,0.3 z m 48.9,-4.5 1.6,1.9 2.1,-1.6 -1.5,-1.3 z m 2.9,3 1.1,-2.3 2.1,0.3 -0.8,1.9 h -2.4 z m 23.6,-1.9 1.5,1.8 1,-1.1 -0.8,-1.9 z m 8.8,-12.5 1.1,5.8 2.9,0.8 5,-2.9 4.4,-2.6 -1.6,-2.4 0.5,-2.4 -2.1,1.3 -2.9,-0.8 1.6,-1.1 1.9,0.8 3.9,-1.8 0.5,-1.5 -2.4,-0.8 0.8,-1.9 -2.7,1.9 -4.7,3.6 -4.8,2.9 z m 42.3,-19.8 2.4,-1.5 -1,-1.8 -1.8,1 z"
+       id="AK">
+      <title
+         id="title1674">Alaska</title>
+    </path>
+    <path
+       d="m 233.1,519.3 1.9,-3.6 2.3,-0.3 0.3,0.8 -2.1,3.1 z m 10.2,-3.7 6.1,2.6 2.1,-0.3 1.6,-3.9 -0.6,-3.4 -4.2,-0.5 -4,1.8 z m 30.7,10 3.7,5.5 2.4,-0.3 1.1,-0.5 1.5,1.3 3.7,-0.2 1,-1.5 -2.9,-1.8 -1.9,-3.7 -2.1,-3.6 -5.8,2.9 z m 20.2,8.9 1.3,-1.9 4.7,1 0.6,-0.5 6.1,0.6 -0.3,1.3 -2.6,1.5 -4.4,-0.3 z m 5.3,5.2 1.9,3.9 3.1,-1.1 0.3,-1.6 -1.6,-2.1 -3.7,-0.3 z m 7,-1.2 2.3,-2.9 4.7,2.4 4.4,1.1 4.4,2.7 v 1.9 l -3.6,1.8 -4.8,1 -2.4,-1.5 z m 16.6,15.6 1.6,-1.3 3.4,1.6 7.6,3.6 3.4,2.1 1.6,2.4 1.9,4.4 4,2.6 -0.3,1.3 -3.9,3.2 -4.2,1.5 -1.5,-0.6 -3.1,1.8 -2.4,3.2 -2.3,2.9 -1.8,-0.2 -3.6,-2.6 -0.3,-4.5 0.6,-2.4 -1.6,-5.7 -2.1,-1.8 -0.2,-2.6 2.3,-1 2.1,-3.1 0.5,-1 -1.6,-1.8 z"
+       id="HI">
+      <title
+         id="title1677">Hawaii</title>
+    </path>
+    <path
+       d="m 628.5,466.4 0.6,0.2 1.3,-2.7 1.5,-4.4 2.3,0.6 3.1,6 v 1 l -2.7,1.9 2.7,0.3 5.2,-2.5 -0.3,-7.6 -2.5,-1.8 -2,-2 0.4,-4 10.5,-1.5 25.7,-2.9 6.7,-0.6 5.6,0.1 -0.5,-2.2 -1.5,-0.8 -0.9,-1.1 1,-2.6 -0.4,-5.2 -1.6,-4.5 0.8,-5.1 1.7,-4.8 -0.2,-1.7 -1.8,-0.7 -0.5,-3.6 -2.7,-3.4 -2,-6.5 -1.4,-6.7 -1.8,-5 -3.8,-16 -3.5,-7.9 -0.8,-5.6 0.1,-2.2 -9,0.8 -23.4,2.2 -12.2,0.8 -0.2,6.4 0.2,16.7 -0.7,31 -0.3,14.1 2.8,18.8 1.6,14.7 z"
+       id="AL">
+      <title
+         id="title1680">Alabama</title>
+    </path>
+    <path
+       d="m 587.3,346.1 -6.4,-0.7 0.9,-3.1 3.1,-2.6 0.6,-2.3 -1.8,-2.9 -31.9,1.2 -23.3,0.7 -23.6,0.3 1.5,6.9 0.1,8.5 1.4,10.9 0.3,38.2 2.1,1.6 3,-1.2 2.9,1.2 0.4,10.1 25.2,-0.2 26.8,-0.8 0.9,-1.9 -0.3,-3.8 -1.7,-3.1 1.5,-1.4 -1.4,-2.2 0.7,-2.4 1.1,-5.9 2.7,-2.3 -0.8,-2.2 4,-5.6 2.5,-1.1 -0.1,-1.7 -0.5,-1.7 2.9,-5.8 2.5,-1.1 0.2,-3.3 2.1,-1.4 0.9,-4.1 -1.4,-4 4.2,-2.4 0.3,-2.1 1.2,-4.2 0.9,-3.1 z"
+       id="AR">
+      <title
+         id="title1683">Arkansas</title>
+    </path>
+    <path
+       d="m 135.1,389.7 -0.3,1.5 0.5,1 18.9,10.7 12.1,7.6 14.7,8.6 16.8,10 12.3,2.4 25.4,2.7 6,-39.6 7,-53.1 4.4,-31 -24.6,-3.6 -60.7,-11 -0.2,1.1 -2.6,16.5 -2.1,3.8 -2.8,-0.2 -1.2,-2.6 -2.6,-0.4 -1.2,-1.1 -1.1,0.1 -2.1,1.7 -0.3,6.8 -0.3,1.5 -0.5,12.5 -1.5,2.4 -0.4,3.3 2.8,5 1.1,5.5 0.7,1.1 1.1,0.9 -0.4,2.4 -1.7,1.2 -3.4,1.6 -1.6,1.8 -1.6,3.6 -0.5,4.9 -3,2.9 -1.9,0.9 -0.1,5.8 -0.6,1.6 0.5,0.8 3.9,0.4 -0.9,3 -1.7,2.4 -3.7,0.4 z"
+       id="AZ">
+      <title
+         id="title1686">Arizona</title>
+    </path>
+    <path
+       d="m 122.7,385.9 -19.7,-2.7 -10,-1.5 -0.5,-1.8 v -9.4 l -0.3,-3.2 -2.6,-4.2 -0.8,-2.3 -3.9,-4.2 -2.9,-4.7 -2.7,-0.2 -3.2,-0.8 -0.3,-1 1.5,-0.6 -0.6,-3.2 -1.5,-2.1 -4.8,-0.8 -3.9,-2.1 -1.1,-2.3 -2.6,-4.8 -2.9,-3.1 H 57 l -3.9,-2.1 -4.5,-1.8 -4.2,-0.5 -2.4,-2.7 0.5,-1.9 1.8,-7.1 0.8,-1.9 v -2.4 l -1.6,-1 -0.5,-2.9 -1.5,-2.6 -3.4,-5.8 -1.3,-3.1 -1.5,-4.7 -1.6,-5.3 -3.2,-4.4 -0.5,-2.9 0.8,-3.9 h 1.1 l 2.1,-1.6 1.1,-3.6 -1,-2.7 -2.7,-0.5 -1.9,-2.6 -2.1,-3.7 -0.2,-8.2 0.6,-1.9 0.6,-2.3 0.5,-2.4 -5.7,-6.3 V 236 l 0.3,-0.5 0.3,-3.2 -1.3,-4 -2.3,-4.8 -2.7,-4.5 -1.8,-3.9 1,-3.7 0.6,-5.8 1.8,-3.1 0.3,-6.5 -1.1,-3.6 -1.6,-4.2 -2.7,-4.2 0.8,-3.2 1.5,-4.2 1.8,-0.8 0.3,-1.1 3.1,-2.6 5.2,-11.8 0.2,-7.4 1.69,-4.9 38.69,11.8 25.6,6.6 -8,31.3 -8.67,33.1 12.63,19.2 42.16,62.3 17.1,26.1 -0.4,3.1 2.8,5.2 1.1,5.4 1,1.5 0.7,0.6 -0.2,1.4 -1.4,1 -3.4,1.6 -1.9,2.1 -1.7,3.9 -0.5,4.7 -2.6,2.5 -2.3,1.1 -0.1,6.2 -0.6,1.9 1,1.7 3,0.3 -0.4,1.6 -1.4,2 -3.9,0.6 z M 48.8,337 l 1.3,1.5 -0.2,1.3 -3.2,-0.1 -0.6,-1.2 -0.6,-1.5 z m 1.9,0 1.2,-0.6 3.6,2.1 3.1,1.2 -0.9,0.6 -4.5,-0.2 -1.6,-1.6 z m 20.7,19.8 1.8,2.3 0.8,1 1.5,0.6 0.6,-1.5 -1,-1.8 -2.7,-2 -1.1,0.2 v 1.2 z m -1.4,8.7 1.8,3.2 1.2,1.9 -1.5,0.2 -1.3,-1.2 c 0,0 -0.7,-1.5 -0.7,-1.9 v -2.2 z"
+       id="CA">
+      <title
+         id="title1689">California</title>
+    </path>
+    <path
+       d="m 380.2,235.5 -36,-3.5 -79.1,-8.6 -2.2,22.1 -7,50.4 -1.9,13.7 34,3.9 37.5,4.4 34.7,3 14.3,0.6 z"
+       id="CO">
+      <title
+         id="title1692">Colorado</title>
+    </path>
+    <path
+       d="m 852,190.9 3.6,-3.2 1.9,-2.1 0.8,0.6 2.7,-1.5 5.2,-1.1 7,-3.5 -0.6,-4.2 -0.8,-4.4 -1.6,-6 -4.3,1.1 -21.8,4.7 0.6,3.1 1.5,7.3 v 8.3 l -0.9,2.1 1.7,2.2 z"
+       id="CT">
+      <title
+         id="title1695">Connecticut</title>
+    </path>
+    <path
+       d="m 834.4,247.2 -1,0.5 -3.6,-2.4 -1.8,-4.7 -1.9,-3.6 -2.3,-1 -2.1,-3.6 0.5,-2 0.5,-2.3 0.1,-1.1 -0.6,0.1 -1.7,1 -2,1.7 -0.2,0.3 1.4,4.1 2.3,5.6 3.7,16.1 5,-0.3 6,-1.1 z"
+       id="DE">
+      <title
+         id="title1698">Delaware</title>
+    </path>
+    <path
+       d="m 750.2,445.2 -5.2,-0.7 -0.7,0.8 1.5,4.4 -0.4,5.2 -4.1,-1 -0.2,-2.8 H 737 l -5.3,0.7 -32.4,1.9 -8.2,-0.3 -1.7,-1.7 -2.5,-4.2 H 681 l -6.6,0.5 -35.4,4.2 -0.3,2.8 1.6,1.6 2.9,2 0.3,8.4 3.3,-0.6 6,-2.1 6,-0.5 4.4,-0.6 7.6,1.8 8.1,3.9 1.6,1.5 2.9,1.1 1.6,1.9 0.3,2.7 3.2,-1.3 h 3.9 l 3.6,-1.9 3.7,-3.6 3.1,0.2 0.5,-1.1 -0.8,-1 0.2,-1.9 4,-0.8 h 2.6 l 2.9,1.5 4.2,1.5 2.4,3.7 2.7,1 1.1,3.4 3.4,1.6 1.6,2.6 1.9,0.6 5.2,1.3 1.3,3.1 3,3.7 v 9.5 l -1.5,4.7 0.3,2.7 1.3,4.8 1.8,4 0.8,-0.5 1.5,-4.5 -2.6,-1 -0.3,-0.6 1.6,-0.6 4.5,1 0.2,1.6 -3.2,5.5 -2.1,2.4 3.6,3.7 2.6,3.1 2.9,5.3 2.9,3.9 2.1,5 1.8,0.3 1.6,-2.1 1.8,1.1 2.6,4 0.6,3.6 3.1,4.4 0.8,-1.3 3.9,0.3 3.6,2.3 3.4,5.2 0.8,3.4 0.3,2.9 1.1,1 1.3,0.5 2.4,-1 1.5,-1.6 3.9,-0.2 3.1,-1.5 2.7,-3.2 -0.5,-1.9 -0.3,-2.4 0.6,-1.9 -0.3,-1.9 2.4,-1.3 0.3,-3.4 -0.6,-1.8 -0.5,-12 -1.3,-7.6 -4.5,-8.2 -3.6,-5.8 -2.6,-5.3 -2.9,-2.9 -2.9,-7.4 0.7,-1.4 1.1,-1.3 -1.6,-2.9 -4,-3.7 -4.8,-5.5 -3.7,-6.3 -5.3,-9.4 -3.7,-9.7 -2.3,-7.3 z m 17.7,132.7 2.4,-0.6 1.3,-0.2 1.5,-2.3 2.3,-1.6 1.3,0.5 1.7,0.3 0.4,1.1 -3.5,1.2 -4.2,1.5 -2.3,1.2 z m 13.5,-5 1.2,1.1 2.7,-2.1 5.3,-4.2 3.7,-3.9 2.5,-6.6 1,-1.7 0.2,-3.4 -0.7,0.5 -1,2.8 -1.5,4.6 -3.2,5.3 -4.4,4.2 -3.4,1.9 z"
+       id="FL">
+      <title
+         id="title1701">Florida</title>
+    </path>
+    <path
+       d="m 750.2,444.2 -5.6,-0.7 -1.4,1.6 1.6,4.7 -0.3,3.9 -2.2,-0.6 -0.2,-3 h -5.2 l -5.3,0.7 -32.3,1.9 -7.7,-0.3 -1.4,-1.2 -2.5,-4.3 -0.8,-3.3 -1.6,-0.9 -0.5,-0.5 0.9,-2.2 -0.4,-5.5 -1.6,-4.5 0.8,-4.9 1.7,-4.8 -0.2,-2.5 -1.9,-0.7 -0.4,-3.2 -2.8,-3.5 -1.9,-6.2 -1.5,-7 -1.7,-4.8 -3.8,-16 -3.5,-8 -0.8,-5.3 0.1,-2.3 3.3,-0.3 13.6,-1.6 18.6,-2 6.3,-1.1 0.5,1.4 -2.2,0.9 -0.9,2.2 0.4,2 1.4,1.6 4.3,2.7 3.2,-0.1 3.2,4.7 0.6,1.6 2.3,2.8 0.5,1.7 4.7,1.8 3,2.2 2.3,3 2.3,1.3 2,1.8 1.4,2.7 2.1,1.9 4.1,1.8 2.7,6 1.7,5.1 2.8,0.7 2.1,1.9 2,5.7 2.9,1.6 1.7,-0.8 0.4,1.2 -3.3,6.2 0.5,2.6 -1.5,4.2 -2.3,10 0.8,6.3 z"
+       id="GA">
+      <title
+         id="title1704">Georgia</title>
+    </path>
+    <path
+       d="m 556.8,183.6 2.1,2.1 0.3,0.7 -2,3 0.3,4 2.6,4.1 3.1,1.6 2.4,0.3 0.9,1.8 0.2,2.4 2.5,1 0.9,1.1 0.5,1.6 3.8,3.3 0.6,1.9 -0.7,3 -1.7,3.7 -0.6,2.4 -2.1,1.6 -1.6,0.5 -5.7,1.5 -1.6,4.8 0.8,1.8 1.7,1.5 -0.2,3.5 -1.9,1.4 -0.7,1.8 v 2.4 l -1.4,0.4 -1.7,1.4 -0.5,1.7 0.4,1.7 -1.3,1 -2.3,-2.7 -1.4,-2.8 -8.3,0.8 -10,0.6 -49.2,1.2 -1.6,-4.3 -0.4,-6.7 -1.4,-4.2 -0.7,-5.2 -2.2,-3.7 -1,-4.6 -2.7,-7.8 -1.1,-5.6 -1.4,-1.9 -1.3,-2.9 1.7,-3.8 1.2,-6.1 -2.7,-2.2 -0.3,-2.4 0.7,-2.4 1.8,-0.3 61.1,-0.6 21.2,-0.7 z"
+       id="IA">
+      <title
+         id="title1707">Iowa</title>
+    </path>
+    <path
+       d="m 175.3,27.63 -4.8,17.41 -4.5,20.86 -3.4,16.22 -0.4,9.67 1.2,4.44 3.5,2.66 -0.2,3.91 -3.9,4.4 -4.5,6.6 -0.9,2.9 -1.2,1.1 -1.8,0.8 -4.3,5.3 -0.4,3.1 -0.4,1.1 0.6,1 2.6,-0.1 1.1,2.3 -2.4,5.8 -1.2,4.2 -8.8,35.3 20.7,4.5 39.5,7.9 34.8,6.1 4.9,-29.2 3.8,-24.1 -2.7,-2.4 -0.4,-2.6 -0.8,-1.1 -2.1,1 -0.7,2.6 -3.2,0.5 -3.9,-1.6 -3.8,0.1 -2.5,0.7 -3.4,-1.5 -2.4,0.2 -2.4,2 -2,-1.1 -0.7,-4 0.7,-2.9 -2.5,-2.9 -3.3,-2.6 -2.7,-13.1 -0.1,-4.7 -0.3,-0.1 -0.2,0.4 -5.1,3.5 -1.7,-0.2 -2.9,-3.4 -0.2,-3.1 7,-17.13 -0.4,-1.94 -3.4,-1.15 -0.6,-1.18 -2.6,-3.46 -4.6,-10.23 -3.2,-1.53 -2,-4.95 1.3,-4.63 -3.2,-7.58 4.4,-21.52 z"
+       id="ID">
+      <title
+         id="title1710">Idaho</title>
+    </path>
+    <path
+       d="m 618.7,214.3 -0.8,-2.6 -1.3,-3.7 -1.6,-1.8 -1.5,-2.6 -0.4,-5.5 -15.9,1.8 -17.4,1 h -12.3 l 0.2,2.1 2.2,0.9 1.1,1.4 0.4,1.4 3.9,3.4 0.7,2.4 -0.7,3.3 -1.7,3.7 -0.8,2.7 -2.4,1.9 -1.9,0.6 -5.2,1.3 -1.3,4.1 0.6,1.1 1.9,1.8 -0.2,4.3 -2.1,1.6 -0.5,1.3 v 2.8 l -1.8,0.6 -1.4,1.2 -0.4,1.2 0.4,2 -1.6,1.3 -0.9,2.8 0.3,3.9 2.3,7 7,7.6 5.7,3.7 v 4.4 l 0.7,1.2 6.6,0.6 2.7,1.4 -0.7,3.5 -2.2,6.2 -0.8,3 2,3.7 6.4,5.3 4.8,0.8 2.2,5.1 2,3.4 -0.9,2.8 1.5,3.8 1.7,2.1 1.6,-0.3 1,-2.2 2.4,-1.7 2.8,-1 6.1,2.5 0.5,-0.2 v -1.1 l -1.2,-2.7 0.4,-2.8 2.4,-1.6 3.4,-1.2 -0.5,-1.3 -0.8,-2 1.2,-1.3 1,-2.7 v -4 l 0.4,-4.9 2.5,-3 1.8,-3.8 2.5,-4 -0.5,-5.3 -1.8,-3.2 -0.3,-3.3 0.8,-5.3 -0.7,-7.2 -1.1,-15.8 -1.4,-15.3 -0.9,-11.7 z"
+       id="IL">
+      <title
+         id="title1713">Illinois</title>
+    </path>
+    <path
+       d="m 622.9,216.1 1.5,1 1.1,-0.3 2.1,-1.9 2.5,-1.8 14.3,-1.1 18.4,-1.8 1.6,15.5 4.9,42.6 -0.6,2.9 1.3,1.6 0.2,1.3 -2.3,1.6 -3.6,1.7 -3.2,0.4 -0.5,4.8 -4.7,3.6 -2.9,4 0.2,2.4 -0.5,1.4 h -3.5 l -1.4,-1.7 -5.2,3 0.2,3.1 -0.9,0.2 -0.5,-0.9 -2.4,-1.7 -3.6,1.5 -1.4,2.9 -1.2,-0.6 -1.6,-1.8 -4.4,0.5 -5.7,1 -2.5,1.3 v -2.6 l 0.4,-4.7 2.3,-2.9 1.8,-3.9 2.7,-4.2 -0.5,-5.8 -1.8,-3.1 -0.3,-3.2 0.8,-5.3 -0.7,-7.1 -0.9,-12.6 -2.5,-30.1 z"
+       id="IN">
+      <title
+         id="title1716">Indiana</title>
+    </path>
+    <path
+       d="m 485.9,259.5 -43.8,-0.6 -40.6,-1.2 -21.7,-0.9 -4.3,64.8 24.3,1 44.7,2.1 46.3,0.6 12.6,-0.3 0.7,-35 -1.2,-11.1 -2.5,-2 -2.4,-3 -2.3,-3.6 0.6,-3 1.7,-1.4 v -2.1 l -0.8,-0.7 -2.6,-0.2 -3.5,-3.4 z"
+       id="KS">
+      <title
+         id="title1719">Kansas</title>
+    </path>
+    <path
+       d="m 607.2,331.8 12.6,-0.7 0.1,-4.1 h 4.3 l 30.4,-3.2 45.1,-4.3 5.6,-3.6 3.9,-2.1 0.1,-1.9 6,-7.8 4.1,-3.6 2.1,-2.4 -3.3,-2 -2.5,-2.7 -3,-3.8 -0.5,-2.2 -2.6,-1.4 -0.9,-1.9 -0.2,-6.1 -2.6,-2 -1.9,-1.1 -0.5,-2.3 -1.3,0.2 -2,1.2 -2.5,2.7 -1.9,-1.7 -2.5,-0.5 -2.4,1.4 h -2.3 l -1.8,-2 -5.6,-0.1 -1.8,-4.5 -2.9,-1.5 -2.1,0.8 -4.2,0.2 -0.5,2.1 1.2,1.5 0.3,2.1 -2.8,2 -3.8,1.8 -2.6,0.4 -0.5,4.5 -4.9,3.6 -2.6,3.7 0.2,2.2 -0.9,2.3 -4.5,-0.1 -1.3,-1.3 -3.9,2.2 0.2,3.3 -2.4,0.6 -0.8,-1.4 -1.7,-1.2 -2.7,1.1 -1.8,3.5 -2.2,-1 -1.4,-1.6 -3.7,0.4 -5.6,1 -2.8,1.3 -1.2,3.4 -1,1 1.5,3.7 -4.2,1.4 -1.9,1.4 -0.4,2.2 1.2,2.4 v 2.2 l -1.6,0.4 -6.1,-2.5 -2.3,0.9 -2,1.4 -0.8,1.8 1.7,2.4 -0.9,1.8 -0.1,3.3 -2.4,1.3 -2.1,1.7 z"
+       id="KY">
+      <title
+         id="title1722">Kentucky</title>
+    </path>
+    <path
+       d="m 526.9,485.9 8.1,-0.3 10.3,3.6 6.5,1.1 3.7,-1.5 3.2,1.1 3.2,1 0.8,-2.1 -3.2,-1.1 -2.6,0.5 -2.7,-1.6 0.8,-1.5 3.1,-1 1.8,1.5 1.8,-1 3.2,0.6 1.5,2.4 0.3,2.3 4.5,0.3 1.8,1.8 -0.8,1.6 -1.3,0.8 1.6,1.6 8.4,3.6 3.6,-1.3 1,-2.4 2.6,-0.6 1.8,-1.5 1.3,1 0.8,2.9 -2.3,0.8 0.6,0.6 3.4,-1.3 2.3,-3.4 0.8,-0.5 -2.1,-0.3 0.8,-1.6 -0.2,-1.5 2.1,-0.5 1.1,-1.3 0.6,0.8 0.6,3.1 4.2,0.6 4,1.9 1,1.5 h 2.9 l 1.1,1 2.3,-3.1 V 493 h -1.3 l -3.4,-2.7 -5.8,-0.8 -3.2,-2.3 1.1,-2.7 2.3,0.3 0.2,-0.6 -1.8,-1 v -0.5 h 3.2 l 1.8,-3.1 -1.3,-1.9 -0.3,-2.7 -1.5,0.2 -1.9,2.1 -0.6,2.6 -3.1,-0.6 -1,-1.8 1.8,-1.9 1.9,-1.7 -2.2,-6.5 -3.4,-3.4 1,-7.3 -0.2,-0.5 -1.3,0.2 -33.1,1.4 -0.8,-2.4 0.8,-8.5 8.6,-14.8 -0.9,-2.6 1.4,-0.4 0.4,-2 -2.2,-2 0.1,-1.9 -2,-4.5 -0.4,-5.1 0.1,-0.7 -26.4,0.8 -25.2,0.1 0.4,9.7 0.7,9.5 0.5,3.7 2.6,4.5 0.9,4.4 4.3,6 0.3,3.1 0.6,0.8 -0.7,8.3 -2.8,4.6 1.2,2.4 -0.5,2.6 -0.8,7.3 -1.3,3 0.2,3.7 z"
+       id="LA">
+      <title
+         id="title1725">Louisiana</title>
+    </path>
+    <path
+       d="m 887.5,172.5 -0.5,-2.3 0.8,-1.5 2.9,-1.5 0.8,3.1 -0.5,1.8 -2.4,1.5 v 1 l 1.9,-1.5 3.9,-4.5 3.9,-1.9 4.2,-1.5 -0.3,-2.4 -1,-2.9 -1.9,-2.4 -1.8,-0.8 -2.1,0.2 -0.5,0.5 1,1.3 1.5,-0.8 2.1,1.6 0.8,2.7 -1.8,1.8 -2.3,1 -3.6,-0.5 -3.9,-6 -2.3,-2.6 h -1.8 l -1.1,0.8 -1.9,-2.6 0.3,-1.5 2.4,-5.2 -2.9,-4.4 -3.7,1.8 -1.8,2.9 -18.3,4.7 -13.8,2.5 -0.6,10.6 0.7,4.9 22,-4.8 11.2,-2.8 2,1.6 3.4,4.3 2.9,4.7 z m 12.5,1.4 2.2,-0.7 0.5,-1.7 1,0.1 1,2.3 -1.3,0.5 -3.9,0.1 z m -9.4,0.8 2.3,-2.6 h 1.6 l 1.8,1.5 -2.4,1 -2.2,1 z"
+       id="MA">
+      <title
+         id="title1728">Massachusetts</title>
+    </path>
+    <path
+       d="m 834.8,264.1 1.7,-3.8 0.5,-4.8 -6.3,1.1 -5.8,0.3 -3.8,-16.8 -2.3,-5.5 -1.5,-4.6 -22.2,4.3 -37.6,7.6 2,10.4 4.8,-4.9 2.5,-0.7 1.4,-1.5 1.8,-2.7 1.6,0.7 2.6,-0.2 2.6,-2.1 2,-1.5 2.1,-0.6 1.5,1.1 2.7,1.4 1.9,1.8 1.3,1.4 4.8,1.6 -0.6,2.9 5.8,2.1 2.1,-2.6 3.7,2.5 -2.1,3.3 -0.7,3.3 -1.8,2.6 v 2.1 l 0.3,0.8 2,1.3 3.4,1.1 4.3,-0.1 3.1,1 2.1,0.3 1,-2.1 -1.5,-2.1 v -1.8 l -2.4,-2.1 -2.1,-5.5 1.3,-5.3 -0.2,-2.1 -1.3,-1.3 c 0,0 1.5,-1.6 1.5,-2.3 0,-0.6 0.5,-2.1 0.5,-2.1 l 1.9,-1.3 1.9,-1.6 0.5,1 -1.5,1.6 -1.3,3.7 0.3,1.1 1.8,0.3 0.5,5.5 -2.1,1 0.3,3.6 0.5,-0.2 1.1,-1.9 1.6,1.8 -1.6,1.3 -0.3,3.4 2.6,3.4 3.9,0.5 1.6,-0.8 3.2,4.2 1,0.4 z m -14.5,0.2 1.1,2.5 0.2,1.8 1.1,1.9 c 0,0 0.9,-0.9 0.9,-1.2 0,-0.3 -0.7,-3.1 -0.7,-3.1 l -0.7,-2.3 z"
+       id="MD">
+      <title
+         id="title1731">Maryland</title>
+    </path>
+    <path
+       d="m 865.8,91.9 1.5,0.4 v -2.6 l 0.8,-5.5 2.6,-4.7 1.5,-4 -1.9,-2.4 v -6 l 0.8,-1 0.8,-2.7 -0.2,-1.5 -0.2,-4.8 1.8,-4.8 2.9,-8.9 2.1,-4.2 h 1.3 l 1.3,0.2 v 1.1 l 1.3,2.3 2.7,0.6 0.8,-0.8 v -1 l 4,-2.9 1.8,-1.8 1.5,0.2 6,2.4 1.9,1 9.1,29.9 h 6 l 0.8,1.9 0.2,4.8 2.9,2.3 h 0.8 l 0.2,-0.5 -0.5,-1.1 2.8,-0.5 1.9,2.1 2.3,3.7 V 85 l -2.1,4.7 -1.9,0.6 -3.4,3.1 -4.8,5.5 h -1.3 c -0.6,0 -1,-2.1 -1,-2.1 l -1.8,0.2 -1,1.5 -2.4,1.5 -1,1.5 1.6,1.5 -0.5,0.6 -0.5,2.7 -1.9,-0.2 v -1.6 l -0.3,-1.3 -1.5,0.3 -1.8,-3.2 -2.1,1.3 1.3,1.5 0.3,1.1 -0.8,1.3 0.3,3.1 0.2,1.6 -1.6,2.6 -2.9,0.5 -0.3,2.9 -5.3,3.1 -1.3,0.5 -1.6,-1.5 -3.1,3.6 1,3.2 -1.5,1.3 -0.2,4.4 -1.1,6.3 -2.2,-0.9 -0.5,-3.1 -4,-1.1 -0.2,-2.5 -11.7,-37.43 z m 36.5,15.6 1.5,-1.5 1.4,1.1 0.6,2.4 -1.7,0.9 z m 6.7,-5.9 1.8,1.9 c 0,0 1.3,0.1 1.3,-0.2 0,-0.3 0.2,-2 0.2,-2 l 0.9,-0.8 -0.8,-1.8 -2,0.7 z"
+       id="ME">
+      <title
+         id="title1734">Maine</title>
+    </path>
+    <path
+       d="m 644.5,211 19.1,-1.9 0.2,1.1 9.9,-1.5 12,-1.7 0.1,-0.6 0.2,-1.5 2.1,-3.7 2,-1.7 -0.2,-5.1 1.6,-1.6 1.1,-0.3 0.2,-3.6 1.5,-3 1.1,0.6 0.2,0.6 0.8,0.2 1.9,-1 -0.4,-9.1 -3.2,-8.2 -2.3,-9.1 -2.4,-3.2 -2.6,-1.8 -1.6,1.1 -3.9,1.8 -1.9,5 -2.7,3.7 -1.1,0.6 -1.5,-0.6 c 0,0 -2.6,-1.5 -2.4,-2.1 0.2,-0.6 0.5,-5 0.5,-5 l 3.4,-1.3 0.8,-3.4 0.6,-2.6 2.4,-1.6 -0.3,-10 -1.6,-2.3 -1.3,-0.8 -0.8,-2.1 0.8,-0.8 1.6,0.3 0.2,-1.6 -2.6,-2.2 -1.3,-2.6 h -2.6 l -4.5,-1.5 -5.5,-3.4 h -2.7 l -0.6,0.6 -1,-0.5 -3.1,-2.3 -2.9,1.8 -2.9,2.3 0.3,3.6 1,0.3 2.1,0.5 0.5,0.8 -2.6,0.8 -2.6,0.3 -1.5,1.8 -0.3,2.1 0.3,1.6 0.3,5.5 -3.6,2.1 -0.6,-0.2 v -4.2 l 1.3,-2.4 0.6,-2.4 -0.8,-0.8 -1.9,0.8 -1,4.2 -2.7,1.1 -1.8,1.9 -0.2,1 0.6,0.8 -0.6,2.6 -2.3,0.5 v 1.1 l 0.8,2.4 -1.1,6.1 -1.6,4 0.6,4.7 0.5,1.1 -0.8,2.4 -0.3,0.8 -0.3,2.7 3.6,6 2.9,6.5 1.5,4.8 -0.8,4.7 -1,6 -2.4,5.2 -0.3,2.7 -3.2,3.1 z m -33.3,-72.4 -1.3,-1.1 -1.8,-10.4 -3.7,-1.3 -1.7,-2.3 -12.6,-2.8 -2.8,-1.1 -8.1,-2.2 -7.8,-1 -3.9,-5.3 0.7,-0.5 2.7,-0.8 3.6,-2.3 v -1 l 0.6,-0.6 6,-1 2.4,-1.9 4.4,-2.1 0.2,-1.3 1.9,-2.9 1.8,-0.8 1.3,-1.8 2.3,-2.3 4.4,-2.4 4.7,-0.5 1.1,1.1 -0.3,1 -3.7,1 -1.5,3.1 -2.3,0.8 -0.5,2.4 -2.4,3.2 -0.3,2.6 0.8,0.5 1,-1.1 3.6,-2.9 1.3,1.3 h 2.3 l 3.2,1 1.5,1.1 1.5,3.1 2.7,2.7 3.9,-0.2 1.5,-1 1.6,1.3 1.6,0.5 1.3,-0.8 h 1.1 l 1.6,-1 4,-3.6 3.4,-1.1 6.6,-0.3 4.5,-1.9 2.6,-1.3 1.5,0.2 v 5.7 l 0.5,0.3 2.9,0.8 1.9,-0.5 6.1,-1.6 1.1,-1.1 1.5,0.5 v 7 l 3.2,3.1 1.3,0.6 1.3,1 -1.3,0.3 -0.8,-0.3 -3.7,-0.5 -2.1,0.6 -2.3,-0.2 -3.2,1.5 h -1.8 l -5.8,-1.3 -5.2,0.2 -1.9,2.6 -7,0.6 -2.4,0.8 -1.1,3.1 -1.3,1.1 -0.5,-0.2 -1.5,-1.6 -4.5,2.4 h -0.6 l -1.1,-1.6 -0.8,0.2 -1.9,4.4 -1,4 -3.2,6.9 z m -29.6,-56.5 1.8,-2.1 2.2,-0.8 5.4,-3.9 2.3,-0.6 0.5,0.5 -5.1,5.1 -3.3,1.9 -2.1,0.9 z m 86.2,32.1 0.6,2.5 3.2,0.2 1.3,-1.2 c 0,0 -0.1,-1.5 -0.4,-1.6 -0.3,-0.2 -1.6,-1.9 -1.6,-1.9 l -2.2,0.2 -1.6,0.2 -0.3,1.1 z"
+       id="MI">
+      <title
+         id="title1737">Michigan</title>
+    </path>
+    <path
+       d="M 464.6,66.79 464,70.7 v 10.27 l 1.6,5.03 1.9,3.32 0.5,9.93 1.8,13.45 1.8,7.3 0.4,6.4 v 5.3 l -1.6,1.8 -1.8,1.3 v 1.5 l 0.9,1.7 4.1,3.5 0.7,3.2 v 35.9 l 60.3,-0.6 21.2,-0.7 -0.5,-6 -1.8,-2.1 -7.2,-4.6 -3.6,-5.3 -3.4,-0.9 -2,-2.8 h -3.2 l -3.5,-3.8 -0.5,-7 0.1,-3.9 1.5,-3 -0.7,-2.7 -2.8,-3.1 2.2,-6.1 5.4,-4 1.2,-1.4 -0.2,-8 0.2,-3 2.6,-3 3.8,-2.9 1.3,-0.2 4.5,-5 1.8,-0.8 2.3,-3.9 2.4,-3.6 3.1,-2.6 4.8,-2 9.2,-4.1 3.9,-1.8 0.6,-2.3 -4.4,0.4 -0.7,1.1 h -0.6 l -1.8,-3.1 -8.9,0.3 -1,0.8 h -1 l -0.5,-1.3 -0.8,-1.8 -2.6,0.5 -3.2,3.2 -1.6,0.8 h -3.1 l -2.6,-1 v -2.1 l -1.3,-0.2 -0.5,0.5 -2.6,-1.3 -0.5,-2.9 -1.5,0.5 -0.5,1 -2.4,-0.5 -5.3,-2.4 -3.9,-2.6 h -2.9 l -1.3,-1 -2.3,0.6 -1.1,1.1 -0.3,1.3 h -4.8 v -2.1 l -6.3,-0.3 -0.3,-1.5 h -4.8 l -1.6,-1.6 -1.5,-6.1 -0.8,-5.5 -1.9,-0.8 -2.3,-0.5 -0.6,0.2 -0.3,8.2 -30.1,-0.03 z"
+       id="MN">
+      <title
+         id="title1740">Minnesota</title>
+    </path>
+    <path
+       d="m 593.1,338.7 0.5,-5.9 4.2,-3.4 1.9,-1 v -2.9 l 0.7,-1.6 -1.1,-1.6 -2.4,0.3 -2.1,-2.5 -1.7,-4.5 0.9,-2.6 -2,-3.2 -1.8,-4.6 -4.6,-0.7 -6.8,-5.6 -2.2,-4.2 0.8,-3.3 2.2,-6 0.6,-3 -1.9,-1 -6.9,-0.6 -1.1,-1.9 v -4.1 l -5.3,-3.5 -7.2,-7.8 -2.3,-7.3 -0.5,-4.2 0.7,-2.4 -2.6,-3.1 -1.2,-2.4 -7.7,0.8 -10,0.6 -48.8,1.2 1.3,2.6 -0.1,2.2 2.3,3.6 3,3.9 3.1,3 2.6,0.2 1.4,1.1 v 2.9 l -1.8,1.6 -0.5,2.3 2.1,3.2 2.4,3 2.6,2.1 1.3,11.6 -0.8,40 0.5,5.7 23.7,-0.2 23.3,-0.7 32.5,-1.3 2.2,3.7 -0.8,3.1 -3.1,2.5 -0.5,1.8 5.2,0.5 4.1,-1.1 z"
+       id="MO">
+      <title
+         id="title1743">Missouri</title>
+    </path>
+    <path
+       d="m 604.3,472.5 2.6,-4.2 1.8,0.8 6.8,-1.9 2.1,0.3 1.5,0.8 h 5.2 l 0.4,-1.6 -1.7,-14.8 -2.8,-19 1,-45.1 -0.2,-16.7 0.2,-6.3 -4.8,0.3 -19.6,1.6 -13,0.4 -0.2,3.2 -2.8,1.3 -2.6,5.1 0.5,1.6 0.1,2.4 -2.9,1.1 -3.5,5.1 0.8,2.3 -3,2.5 -1,5.7 -0.6,1.9 1.6,2.5 -1.5,1.4 1.5,2.8 0.3,4.2 -1.2,2.5 -0.2,0.9 0.4,5 2,4.5 -0.1,1.7 2.3,2 -0.7,3.1 -0.9,0.3 0.6,1.9 -8.6,15 -0.8,8.2 0.5,1.5 24.2,-0.7 8.2,-0.7 1.9,-0.3 0.6,1.4 -1,7.1 3.3,3.3 2.2,6.4 z"
+       id="MS">
+      <title
+         id="title1746">Mississippi</title>
+    </path>
+    <path
+       d="m 361.1,70.77 -5.3,57.13 -1.3,15.2 -59.1,-6.6 -49,-7.1 -1.4,11.2 -1.9,-1.7 -0.4,-2.5 -1.3,-1.9 -3.3,1.5 -0.7,2.5 -2.3,0.3 -3.8,-1.6 -4.1,0.1 -2.4,0.7 -3.2,-1.5 -3,0.2 -2.1,1.9 -0.9,-0.6 -0.7,-3.4 0.7,-3.2 -2.7,-3.2 -3.3,-2.5 -2.5,-12.6 -0.1,-5.3 -1.6,-0.8 -0.6,1 -4.5,3.2 -1.2,-0.1 -2.3,-2.8 -0.2,-2.8 7,-17.15 -0.6,-2.67 -3.5,-1.12 -0.4,-0.91 -2.7,-3.5 -4.6,-10.41 -3.2,-1.58 -1.8,-4.26 1.3,-4.63 -3.2,-7.57 4.4,-21.29 32.7,6.89 18.4,3.4 32.3,5.3 29.3,4 29.2,3.5 30.8,3.07 z"
+       id="MT">
+      <title
+         id="title1749">Montana</title>
+    </path>
+    <path
+       d="M 786.7,357.7 774,350 l -3.1,-0.8 -16.6,2.1 -1.6,-3 -2.8,-2.2 -16.7,0.5 -7.4,0.9 -9.2,4.5 -6.8,2.7 -6.5,1.2 -13.4,1.4 0.1,-4.1 1.7,-1.3 2.7,-0.7 0.7,-3.8 3.9,-2.5 3.9,-1.5 4.5,-3.7 4.4,-2.3 0.7,-3.2 4.1,-3.8 0.7,1 2.5,0.2 2.4,-3.6 1.7,-0.4 2.6,0.3 1.8,-4 2.5,-2.4 0.5,-1.8 0.1,-3.5 4.4,0.1 38.5,-5.6 57.5,-12.3 2,4.8 3.6,6.5 2.4,2.4 0.6,2.3 -2.4,0.2 0.8,0.6 -0.3,4.2 -2.6,1.3 -0.6,2.1 -1.3,2.9 -3.7,1.6 -2.4,-0.3 -1.5,-0.2 -1.6,-1.3 0.3,1.3 v 1 h 1.9 l 0.8,1.3 -1.9,6.3 h 4.2 l 0.6,1.6 2.3,-2.3 1.3,-0.5 -1.9,3.6 -3.1,4.8 H 828 l -1.1,-0.5 -2.7,0.6 -5.2,2.4 -6.5,5.3 -3.4,4.7 -1.9,6.5 -0.5,2.4 -4.7,0.5 -5.1,1.5 z m 49.3,-26.2 2.6,-2.5 3.2,-2.6 1.5,-0.6 0.2,-2 -0.6,-6.1 -1.5,-2.3 -0.6,-1.9 0.7,-0.2 2.7,5.5 0.4,4.4 -0.2,3.4 -3.4,1.5 -2.8,2.4 -1.1,1.2 z"
+       id="NC">
+      <title
+         id="title1752">North Carolina</title>
+    </path>
+    <path
+       d="m 471,126.4 -0.4,-6.2 -1.8,-7.3 -1.8,-13.61 -0.5,-9.7 -1.9,-3.18 -1.6,-5.32 V 70.68 l 0.6,-3.85 -1.8,-5.54 -28.6,-0.59 -18.6,-0.6 -26.5,-1.3 -25.2,-2.16 -0.9,14.42 -4.7,50.94 56.8,3.9 56.9,1.7 z"
+       id="ND">
+      <title
+         id="title1755">North Dakota</title>
+    </path>
+    <path
+       d="m 470.3,204.3 -1,-2.3 -0.5,-1.6 -2.9,-1.6 -4.8,-1.5 -2.2,-1.2 -2.6,0.1 -3.7,0.4 -4.2,1.2 -6,-4.1 -2.2,-2 -10.7,0.6 -41.5,-2.4 -35.6,-2.2 -4.3,43.7 33.1,3.3 -1.4,21.1 21.7,1 40.6,1.2 43.8,0.6 h 4.5 l -2.2,-3 -2.6,-3.9 0.1,-2.3 -1.4,-2.7 -1.9,-5.2 -0.4,-6.7 -1.4,-4.1 -0.5,-5 -2.3,-3.7 -1,-4.7 -2.8,-7.9 -1,-5.3 z"
+       id="NE">
+      <title
+         id="title1758">Nebraska</title>
+    </path>
+    <path
+       d="m 881.7,141.3 1.1,-3.2 -2.7,-1.2 -0.5,-3.1 -4.1,-1.1 -0.3,-3 -11.7,-37.48 -0.7,0.08 -0.6,1.6 -0.6,-0.5 -1,-1 -1.5,1.9 -0.2,2.29 0.5,8.41 1.9,2.8 v 4.3 l -3.9,4.8 -2.4,0.9 v 0.7 l 1.1,1.9 v 8.6 l -0.8,9.2 -0.2,4.7 1,1.4 -0.2,4.7 -0.5,1.5 1,1.1 5.1,-1.2 13.8,-3.5 1.7,-2.9 4,-1.9 z"
+       id="NH">
+      <title
+         id="title1761">New Hampshire</title>
+    </path>
+    <path
+       d="m 823.7,228.3 0.1,-1.5 2.7,-1.3 1.7,-2.8 1.7,-2.4 3.3,-3.2 v -1.2 l -6.1,-4.1 -1,-2.7 -2.7,-0.3 -0.1,-0.9 -0.7,-2.2 2.2,-1.1 0.2,-2.9 -1.3,-1.3 0.2,-1.2 1.9,-3.1 V 193 l 2.5,-3.1 5.6,2.5 6.4,1.9 2.5,1.2 0.1,1.8 -0.5,2.7 0.4,4.5 -2.1,1.9 -1.1,1 0.5,0.5 2.7,-0.3 1.1,-0.8 1.6,3.4 0.2,9.4 0.6,1.1 -1.1,5.5 -3.1,6.5 -2.7,4 -0.8,4.8 -2.1,2.4 h -0.8 l -0.3,-2.7 0.8,-1 -0.2,-1.5 -4,-0.6 -4.8,-2.3 -3.2,-2.9 -1,-2 z"
+       id="NJ">
+      <title
+         id="title1764">New Jersey</title>
+    </path>
+    <path
+       d="m 270.2,429.4 -16.7,-2.6 -1.2,9.6 -15.8,-2 6,-39.7 7,-53.2 4.4,-30.9 34,3.9 37.4,4.4 32,2.8 -0.3,10.8 -1.4,-0.1 -7.4,97.7 -28.4,-1.8 -38.1,-3.7 0.7,6.3 z"
+       id="NM">
+      <title
+         id="title1767">New Mexico</title>
+    </path>
+    <path
+       d="m 123.1,173.6 38.7,8.5 26,5.2 -10.6,53.1 -5.4,29.8 -3.3,15.5 -2.1,11.1 -2.6,16.4 -1.7,3.1 -1.6,-0.1 -1.2,-2.6 -2.8,-0.5 -1.3,-1.1 -1.8,0.1 -0.9,0.8 -1.8,1.3 -0.3,7.3 -0.3,1.5 -0.5,12.4 -1.1,1.8 -16.7,-25.5 -42.1,-62.1 -12.43,-19 8.55,-32.6 8.01,-31.3 z"
+       id="NV">
+      <title
+         id="title1770">Nevada</title>
+    </path>
+    <path
+       d="m 843.4,200 0.5,-2.7 -0.2,-2.4 -3,-1.5 -6.5,-2 -6,-2.6 -0.6,-0.4 -2.7,-0.3 -2,-1.5 -2.1,-5.9 -3.3,-0.5 -2.4,-2.4 -38.4,8.1 -31.6,6 -0.5,-6.5 1.6,-1.2 1.3,-1.1 1,-1.6 1.8,-1.1 1.9,-1.8 0.5,-1.6 2.1,-2.7 1.1,-1 -0.2,-1 -1.3,-3.1 -1.8,-0.2 -1.9,-6.1 2.9,-1.8 4.4,-1.5 4,-1.3 3.2,-0.5 6.3,-0.2 1.9,1.3 1.6,0.2 2.1,-1.3 2.6,-1.1 5.2,-0.5 2.1,-1.8 1.8,-3.2 1.6,-1.9 h 2.1 l 1.9,-1.1 0.2,-2.3 -1.5,-2.1 -0.3,-1.5 1.1,-2.1 v -1.5 h -1.8 l -1.8,-0.8 -0.8,-1.1 -0.2,-2.6 5.8,-5.5 0.6,-0.8 1.5,-2.9 2.9,-4.5 2.7,-3.7 2.1,-2.4 2.4,-1.8 3.1,-1.2 5.5,-1.3 3.2,0.2 4.5,-1.5 7.4,-2.2 0.7,4.9 2.4,6.5 0.8,5 -1,4.2 2.6,4.5 0.8,2 -0.9,3.2 3.7,1.7 2.7,10.2 v 5.8 l -0.6,10.9 0.8,5.4 0.7,3.6 1.5,7.3 v 8.1 l -1.1,2.3 2.1,2.7 0.5,0.9 -1.9,1.8 0.3,1.3 1.3,-0.3 1.5,-1.3 2.3,-2.6 1.1,-0.6 1.6,0.6 2.3,0.2 7.9,-3.9 2.9,-2.7 1.3,-1.5 4.2,1.6 -3.4,3.6 -3.9,2.9 -7.1,5.3 -2.6,1 -5.8,1.9 -4,1.1 -1,-0.4 z"
+       id="NY">
+      <title
+         id="title1773">New York</title>
+    </path>
+    <path
+       d="m 663.8,211.2 1.7,15.5 4.8,41.1 3.9,-0.2 2.3,-0.8 3.6,1.8 1.7,4.2 5.4,0.1 1.8,2 h 1.7 l 2.4,-1.4 3.1,0.5 1.5,1.3 1.8,-2 2.3,-1.4 2.4,-0.4 0.6,2.7 1.6,1 2.6,2 0.8,0.2 2,-0.1 1.2,-0.6 v -2.1 l 1.7,-1.5 0.1,-4.8 1.1,-4.2 1.9,-1.3 1,0.7 1,1.1 0.7,0.2 0.4,-0.4 -0.9,-2.7 v -2.2 l 1.1,-1.4 2.5,-3.6 1.3,-1.5 2.2,0.5 2.1,-1.5 3,-3.3 2.2,-3.7 0.2,-5.4 0.5,-5 V 230 l -1.2,-3.2 1.2,-1.8 1.3,-1.2 -0.6,-2.8 -4.3,-25.6 -6.2,3.7 -3.9,2.3 -3.4,3.7 -4,3.9 -3.2,0.8 -2.9,0.5 -5.5,2.6 -2.1,0.2 -3.4,-3.1 -5.2,0.6 -2.6,-1.5 -2.2,-1.3 z"
+       id="OH">
+      <title
+         id="title1776">Ohio</title>
+    </path>
+    <path
+       d="m 411.9,334.9 -1.8,24.3 -0.9,18 0.2,1.6 4,3.6 1.7,0.9 h 0.9 l 0.9,-2.1 1.5,1.9 1.6,0.1 0.3,-0.2 0.2,-1.1 2.8,1.4 -0.4,3.5 3.8,0.5 2.5,1 4.2,0.6 2.3,1.6 2.5,-1.7 3.5,0.7 2.2,3.1 1.2,0.1 v 2.3 l 2.1,0.7 2.5,-2.1 1.8,0.6 2.7,0.1 0.7,2.3 4.4,1.8 1.7,-0.3 1.9,-4.2 h 1.3 l 1.1,2.1 4.2,0.8 3.4,1.3 3,0.8 1.6,-0.7 0.7,-2.7 h 4.5 l 1.9,0.9 2.7,-1.9 h 1.4 l 0.6,1.4 h 3.6 l 2,-1.8 2.3,0.6 1.7,2.2 3,1.7 3.4,0.9 1.9,1.2 -0.3,-37.6 -1.4,-10.9 -0.1,-8.6 -1.5,-6.6 -0.6,-6.8 0.1,-4.3 -12.6,0.3 -46.3,-0.5 -44.7,-2.1 -41.5,-1.8 -0.4,10.7 z"
+       id="OK">
+      <title
+         id="title1779">Oklahoma</title>
+    </path>
+    <path
+       d="m 67.44,158.9 28.24,7.2 27.52,6.5 17,3.7 8.8,-35.1 1.2,-4.4 2.4,-5.5 -0.7,-1.3 -2.5,0.1 -1.3,-1.8 0.6,-1.5 0.4,-3.3 4.7,-5.7 1.9,-0.9 0.9,-0.8 0.7,-2.7 0.8,-1.1 3.9,-5.7 3.7,-4 0.2,-3.26 -3.4,-2.49 -1.2,-4.55 -13.1,-3.83 -15.3,-3.47 -14.8,0.37 -1.1,-1.31 -5.1,1.84 -4.5,-0.48 -2.4,-1.58 -1.3,0.54 -4.68,-0.29 -1.96,-1.43 -4.84,-1.77 -1.1,-0.07 -4.45,-1.27 -1.76,1.52 -6.26,-0.24 -5.31,-3.85 0.21,-9.28 -2.05,-3.5 -4.1,-0.6 -0.7,-2.5 -2.4,-0.5 -5.8,2.1 -2.3,6.5 -3.2,10 -3.2,6.5 -5,14.1 -6.5,13.6 -8.1,12.6 -1.9,2.9 -0.8,8.6 -1.3,6 2.71,3.5 z"
+       id="OR">
+      <title
+         id="title1782">Oregon</title>
+    </path>
+    <path
+       d="m 736.6,192.2 1.3,-0.5 5.7,-5.5 0.7,6.9 33.5,-6.5 36.9,-7.8 2.3,2.3 3.1,0.4 2,5.6 2.4,1.9 2.8,0.4 0.1,0.1 -2.6,3.2 v 3.1 l -1.9,3.1 -0.2,1.9 1.3,1.3 -0.2,1.9 -2.4,1.1 1,3.4 0.2,1.1 2.8,0.3 0.9,2.5 5.9,3.9 v 0.4 l -3.1,3 -1.5,2.2 -1.7,2.8 -2.7,1.2 -1.4,0.3 -2.1,1.3 -1.6,1.4 -22.4,4.3 -38.7,7.8 -11.3,1.4 -3.9,0.7 -5.1,-22.4 -4.3,-25.9 z"
+       id="PA">
+      <title
+         id="title1785">Pennsylvania</title>
+    </path>
+    <path
+       d="m 873.6,175.7 -0.8,-4.4 -1.6,-6 5.7,-1.5 1.5,1.3 3.4,4.3 2.8,4.4 -2.8,1.4 -1.3,-0.2 -1.1,1.8 -2.4,1.9 -2.8,1.1 z"
+       id="RI">
+      <title
+         id="title1788">Rhode Island</title>
+    </path>
+    <path
+       d="m 759,413.6 -2.1,-1 -1.9,-5.6 -2.5,-2.3 -2.5,-0.5 -1.5,-4.6 -3,-6.5 -4.2,-1.8 -1.9,-1.8 -1.2,-2.6 -2.4,-2 -2.3,-1.3 -2.2,-2.9 -3.2,-2.4 -4.4,-1.7 -0.4,-1.4 -2.3,-2.8 -0.5,-1.5 -3.8,-5.4 -3.4,0.1 -3.9,-2.5 -1.2,-1.2 -0.2,-1.4 0.6,-1.6 2.7,-1.3 -0.8,-2 6.4,-2.7 9.2,-4.5 7.1,-0.9 16.4,-0.5 2.3,1.9 1.8,3.5 4.6,-0.8 12.6,-1.5 2.7,0.8 12.5,7.4 10.1,8.3 -5.3,5.4 -2.6,6.1 -0.5,6.3 -1.6,0.8 -1.1,2.7 -2.4,0.6 -2.1,3.6 -2.7,2.7 -2.3,3.4 -1.6,0.8 -3.6,3.4 -2.9,0.2 1,3.2 -5,5.3 -2.3,1.6 z"
+       id="SC">
+      <title
+         id="title1791">South Carolina</title>
+    </path>
+    <path
+       d="m 471,181.1 -0.9,3.2 0.4,3 2.6,2 -1.2,5.4 -1.8,4.1 1.5,3.3 0.7,1.1 -1.3,0.1 -0.7,-1.6 -0.6,-2 -3.3,-1.8 -4.8,-1.5 -2.5,-1.3 -2.9,0.1 -3.9,0.4 -3.8,1.2 -5.3,-3.8 -2.7,-2.4 -10.9,0.8 -41.5,-2.4 -35.6,-2.2 1.5,-24.8 2.8,-34 0.4,-5 56.9,3.9 56.9,1.7 v 2.7 l -1.3,1.5 -2,1.5 -0.1,2.2 1.1,2.2 4.1,3.4 0.5,2.7 v 35.9 z"
+       id="SD">
+      <title
+         id="title1794">South Dakota</title>
+    </path>
+    <path
+       d="m 670.8,359.6 -13.1,1.2 -23.3,2.2 -37.6,2.7 -11.8,0.4 0.9,-0.6 0.9,-4.5 -1.2,-3.6 3.9,-2.3 0.4,-2.5 1.2,-4.3 3,-9.5 0.5,-5.6 0.3,-0.2 12.3,-0.2 13.6,-0.8 0.1,-3.9 3.5,-0.1 30.4,-3.3 54,-5.2 10.3,-1.5 7.6,-0.2 2.4,-1.9 1.3,0.3 -0.1,3.3 -0.4,1.6 -2.4,2.2 -1.6,3.6 -2,-0.4 -2.4,0.9 -2.2,3.3 -1.4,-0.2 -0.8,-1.2 -1.1,0.4 -4.3,4 -0.8,3.1 -4.2,2.2 -4.3,3.6 -3.8,1.5 -4.4,2.8 -0.6,3.6 -2.5,0.5 -2,1.7 -0.2,4.8 z"
+       id="TN">
+      <title
+         id="title1797">Tennessee</title>
+    </path>
+    <path
+       d="m 282.8,425.6 37,3.6 29.3,1.9 7.4,-97.7 54.4,2.4 -1.7,23.3 -1,18 0.2,2 4.4,4.1 2,1.1 h 1.8 l 0.5,-1.2 0.7,0.9 2.4,0.2 1.1,-0.6 v -0.2 l 1,0.5 -0.4,3.7 4.5,0.7 2.4,0.9 4.2,0.7 2.6,1.8 2.8,-1.9 2.7,0.6 2.2,3.1 0.8,0.1 v 2.1 l 3.3,1.1 2.5,-2.1 1.5,0.5 2.1,0.1 0.6,2.1 5.2,2 2.3,-0.5 1.9,-4 h 0.1 l 1.1,1.9 4.6,0.9 3.4,1.3 3.2,1 2.4,-1.2 0.7,-2.3 h 3.6 l 2.1,1 3,-2 h 0.4 l 0.5,1.4 h 4.7 l 1.9,-1.8 1.3,0.4 1.7,2.1 3.3,1.9 3.4,1 2.5,1.4 2.7,2 3.1,-1.2 2.1,0.8 0.7,20 0.7,9.5 0.6,4.1 2.6,4.4 0.9,4.5 4.2,5.9 0.3,3.1 0.6,0.8 -0.7,7.7 -2.9,4.8 1.3,2.6 -0.5,2.4 -0.8,7.2 -1.3,3 0.3,4.2 -5.6,1.6 -9.9,4.5 -1,1.9 -2.6,1.9 -2.1,1.5 -1.3,0.8 -5.7,5.3 -2.7,2.1 -5.3,3.2 -5.7,2.4 -6.3,3.4 -1.8,1.5 -5.8,3.6 -3.4,0.6 -3.9,5.5 -4,0.3 -1,1.9 2.3,1.9 -1.5,5.5 -1.3,4.5 -1.1,3.9 -0.8,4.5 0.8,2.4 1.8,7 1,6.1 1.8,2.7 -1,1.5 -3.1,1.9 -5.7,-3.9 -5.5,-1.1 -1.3,0.5 -3.2,-0.6 -4.2,-3.1 -5.2,-1.1 -7.6,-3.4 -2.1,-3.9 -1.3,-6.5 -3.2,-1.9 -0.6,-2.3 0.6,-0.6 0.3,-3.4 -1.3,-0.6 -0.6,-1 1.3,-4.4 -1.6,-2.3 -3.2,-1.3 -3.4,-4.4 -3.6,-6.6 -4.2,-2.6 0.2,-1.9 -5.3,-12.3 -0.8,-4.2 -1.8,-1.9 -0.2,-1.5 -6,-5.3 -2.6,-3.1 v -1.1 l -2.6,-2.1 -6.8,-1.1 -7.4,-0.6 -3.1,-2.3 -4.5,1.8 -3.6,1.5 -2.3,3.2 -1,3.7 -4.4,6.1 -2.4,2.4 -2.6,-1 -1.8,-1.1 -1.9,-0.6 -3.9,-2.3 v -0.6 l -1.8,-1.9 -5.2,-2.1 -7.4,-7.8 -2.3,-4.7 v -8.1 l -3.2,-6.5 -0.5,-2.7 -1.6,-1 -1.1,-2.1 -5,-2.1 -1.3,-1.6 -7.1,-7.9 -1.3,-3.2 -4.7,-2.3 -1.5,-4.4 -2.6,-2.9 -1.7,-0.5 z m 174.4,141.7 -0.6,-7.1 -2.7,-7.2 -0.6,-7 1.5,-8.2 3.3,-6.9 3.5,-5.4 3.2,-3.6 0.6,0.2 -4.8,6.6 -4.4,6.5 -2,6.6 -0.3,5.2 0.9,6.1 2.6,7.2 0.5,5.2 0.2,1.5 z"
+       id="TX">
+      <title
+         id="title1800">Texas</title>
+    </path>
+    <path
+       d="m 228.4,305.9 24.6,3.6 1.9,-13.7 7,-50.5 2.3,-22 -32.2,-3.5 2.2,-13.1 1.8,-10.6 -34.7,-6.1 -12.5,-2.5 -10.6,52.9 -5.4,30 -3.3,15.4 -1.7,9.2 z"
+       id="UT">
+      <title
+         id="title1803">Utah</title>
+    </path>
+    <path
+       d="m 834.7,265.2 -0.2,2.8 -2.9,3.8 -0.4,4.6 0.5,3.4 -1.8,5 -2.2,1.9 -1.5,-4.6 0.4,-5.4 1.6,-4.2 0.7,-3.3 -0.1,-1.7 z m -60.3,44.6 -38.6,5.6 -4.8,-0.1 -2.2,-0.3 -2.5,1.9 -7.3,0.1 -10.3,1.6 -6.7,0.6 4.1,-2.6 4.1,-2.3 v -2.1 l 5.7,-7.3 4.1,-3.7 2.2,-2.5 3.6,4.3 3.8,0.9 2.7,-1 2,-1.5 2.4,1.2 4.6,-1.3 1.7,-4.4 2.4,0.7 3.2,-2.3 1.6,0.4 2.8,-3.2 0.2,-2.7 -0.8,-1.2 4.8,-10.5 1.8,-5.2 0.5,-4.7 0.7,-0.2 1.1,1.7 1.5,1.2 3.9,-0.2 1.7,-8.1 3,-0.6 0.8,-2.6 2.8,-2.2 1.1,-2.1 1.8,-4.3 0.1,-4.6 3.6,1.4 6.6,3.1 0.3,-5.2 3.4,1.2 -0.6,2.9 8.6,3.1 1.4,1.8 -0.8,3.3 -1.3,1.3 -0.5,1.7 0.5,2.4 2,1.3 3.9,1.4 2.9,1 4.9,0.9 2.2,2.1 3.2,0.4 0.9,1.2 -0.4,4.7 1.4,1.1 -0.5,1.9 1.2,0.8 -0.2,1.4 -2.7,-0.1 0.1,1.6 2.3,1.5 0.1,1.4 1.8,1.8 0.5,2.5 -2.6,1.4 1.6,1.5 5.8,-1.7 3.7,6.2 z"
+       id="VA">
+      <title
+         id="title1806">Virginia</title>
+    </path>
+    <path
+       d="m 832.7,111.3 2.4,6.5 0.8,5.3 -1,3.9 2.5,4.4 0.9,2.3 -0.7,2.6 3.3,1.5 2.9,10.8 v 5.3 l 11.5,-2.1 -1,-1.1 0.6,-1.9 0.2,-4.3 -1,-1.4 0.2,-4.7 0.8,-9.3 v -8.5 l -1.1,-1.8 v -1.6 l 2.8,-1.1 3.5,-4.4 v -3.6 l -1.9,-2.7 -0.3,-5.79 -26.1,6.79 z"
+       id="VT">
+      <title
+         id="title1809">Vermont</title>
+    </path>
+    <path
+       d="m 74.5,67.7 -2.3,-4.3 -4.1,-0.7 -0.4,-2.4 -2.5,-0.6 -2.9,-0.5 -1.8,1 -2.3,-2.9 0.3,-2.9 2.7,-0.3 1.6,-4 L 60.2,49 60.4,45.3 64.8,44.7 62.1,42 60.6,34.9 61.2,32 v -7.9 l -1.8,-3.2 2.3,-9.4 2.1,0.5 2.4,2.9 2.7,2.6 3.2,1.9 4.5,2.1 3.1,0.6 2.9,1.5 3.4,1 2.3,-0.2 V 22 l 1.3,-1.1 2.1,-1.3 0.3,1.1 0.3,1.8 -2.3,0.5 -0.3,2.1 1.8,1.5 1.1,2.4 0.6,1.9 1.5,-0.2 0.2,-1.3 -1,-1.3 -0.5,-3.2 0.8,-1.8 -0.6,-1.5 V 19 L 95.4,15.4 94.3,12.8 91.9,8 92.2,7.2 93.6,6.4 98,7.9 l 9.7,2.7 8.6,1.9 20,5.7 23,5.7 15,3.49 -4.8,17.56 -4.5,20.83 -3.4,16.25 -0.4,9.18 -12.9,-3.72 -15.3,-3.47 -14.5,0.32 -1.1,-1.53 -5.7,2.09 -3.9,-0.42 -2.6,-1.79 -1.7,0.65 -4.15,-0.25 -1.72,-1.32 -5.16,-1.82 -1.18,-0.16 -4.8,-1.39 -1.92,1.65 -5.65,-0.25 -4.61,-3.35 z m 9.6,-55.4 2,-0.2 0.5,1.4 1.5,-1.6 h 2.3 l 0.8,1.5 -1.5,1.7 0.6,0.8 -0.7,2 -1.4,0.4 c 0,0 -0.9,0.1 -0.9,-0.2 0,-0.3 1.5,-2.6 1.5,-2.6 l -1.7,-0.6 -0.3,1.5 -0.7,0.6 -1.5,-2.3 z"
+       id="WA">
+      <title
+         id="title1812">Washington</title>
+    </path>
+    <path
+       d="m 541.4,109.9 2.9,0.5 2.9,-0.6 7.4,-3.2 2.9,-1.9 2.1,-0.8 1.9,1.5 -1.1,1.1 -1.9,3.1 -0.6,1.9 1,0.6 1.8,-1 1.1,-0.2 2.7,0.8 0.6,1.1 1.1,0.2 0.6,-1.1 4,5.3 8.2,1.2 8.2,2.2 2.6,1.1 12.3,2.6 1.6,2.3 3.6,1.2 1.7,10.2 1.6,1.4 1.5,0.9 -1.1,2.3 -1.8,1.6 -2.1,4.7 -1.3,2.4 0.2,1.8 1.5,0.3 1.1,-1.9 1.5,-0.8 0.8,-2.3 1.9,-1.8 2.7,-4 4.2,-6.3 0.8,-0.5 0.3,1 -0.2,2.3 -2.9,6.8 -2.7,5.7 -0.5,3.2 -0.6,2.6 0.8,1.3 -0.2,2.7 -1.9,2.4 -0.5,1.8 0.6,3.6 0.6,3.4 -1.5,2.6 -0.8,2.9 -1,3.1 1.1,2.4 0.6,6.1 1.6,4.5 -0.2,3 -15.9,1.8 -17.5,1 H 567 l -0.7,-1.5 -2.9,-0.4 -2.6,-1.3 -2.3,-3.7 -0.3,-3.6 2,-2.9 -0.5,-1.4 -2.1,-2.2 -0.8,-3.3 -0.6,-6.8 -2.1,-2.5 -7,-4.5 -3.8,-5.4 -3.4,-1 -2.2,-2.8 h -3.2 l -2.9,-3.3 -0.5,-6.5 0.1,-3.8 1.5,-3.1 -0.8,-3.2 -2.5,-2.8 1.8,-5.4 5.2,-3.8 1.6,-1.9 -0.2,-8.1 0.2,-2.8 2.4,-2.8 z"
+       id="WI">
+      <title
+         id="title1815">Wisconsin</title>
+    </path>
+    <path
+       d="m 758.9,254.3 5.8,-6 2.6,-0.8 1.6,-1.5 1.5,-2.2 1.1,0.3 3.1,-0.2 4.6,-3.6 1.5,-0.5 1.3,1 2.6,1.2 3,3 -0.4,4.3 -5.4,-2.6 -4.8,-1.8 -0.1,5.9 -2.6,5.7 -2.9,2.4 -0.8,2.3 -3,0.5 -1.7,8.1 -2.8,0.2 -1.1,-1 -1.2,-2 -2.2,0.5 -0.5,5.1 -1.8,5.1 -5,11 0.9,1.4 -0.1,2 -2.2,2.5 -1.6,-0.4 -3.1,2.3 -2.8,-0.8 -1.8,4.9 -3.8,1 -2.5,-1.3 -2.5,1.9 -2.3,0.7 -3.2,-0.8 -3.8,-4.5 -3.5,-2.2 -2.5,-2.5 -2.9,-3.7 -0.5,-2.3 -2.8,-1.7 -0.6,-1.3 -0.2,-5.6 0.3,0.1 2.4,-0.2 1.8,-1 V 275 l 1.7,-1.5 0.1,-5.2 0.9,-3.6 1.1,-0.7 0.4,0.3 1,1.1 1.7,0.5 1.1,-1.3 -1,-3.1 v -1.6 l 3.1,-4.6 1.2,-1.3 2,0.5 2.6,-1.8 3.1,-3.4 2.4,-4.1 0.2,-5.6 0.5,-4.8 v -4.9 l -1.1,-3 0.9,-1.3 0.8,-0.7 4.3,19.3 4.3,-0.8 11.2,-1.3 z"
+       id="WV">
+      <title
+         id="title1818">West Virginia</title>
+    </path>
+    <path
+       d="m 353,161.9 -1.5,25.4 -4.4,44 -2.7,-0.3 -83.3,-9.1 -27.9,-3 2,-12 6.9,-41 3.8,-24.2 1.3,-11.2 48.2,7 59.1,6.5 z"
+       id="WY">
+      <title
+         id="title1821">Wyoming</title>
+    </path>
+    <g
+       id="DC">
+      <title
+         id="title1824">District of Columbia</title>
+      <path
+         d="m 801.8,253.8 -1.1,-1.6 -1,-0.8 1.1,-1.6 2.2,1.5 z"
+         id="DC1" />
+      <circle
+         r="0"
+         cy="251.8"
+         cx="801.29999"
+         stroke-width="1.5"
+         stroke="#ffffff"
+         id="DC2" />
+      <!-- Set opacity to "0" to hide DC circle -->
+    </g>
+  </g>
+  <g
+     id="g1834">
+    <title
+       id="title1831">Layer 1</title>
+    <path
+       d="m215,493l0,55l36,45m-251,-168l147,0l68,68l85,0l54,54l0,46"
+       stroke-width="2"
+       stroke="#A9A9A9"
+       fill="none"
+       id="frames" />
+  </g>
+  <g
+     id="g1839">
+    <title
+       id="title1836">background</title>
+    <rect
+       fill="none"
+       id="canvas_background"
+       height="792.6669"
+       width="1280.66704"
+       y="-1"
+       x="-1" />
+  </g>
+  <metadata
+     id="metadata11186">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:title>2026 US Senate map</dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+</svg>
+</script>
+</body>
+</html>
